@@ -1,6 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet } from '@angular/router';
+import { RouterOutlet, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
@@ -10,7 +10,7 @@ import { of } from 'rxjs';
   templateUrl: './app.html',
   styleUrls: ['./app.css'],
   standalone: true,
-  imports: [CommonModule, RouterOutlet] 
+  imports: [CommonModule, RouterOutlet, RouterModule] 
 })
 export class App implements OnInit {
   message: string = 'Loading...';
