@@ -1,20 +1,19 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { signal } from '@angular/core';
-import { catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class AppService {
+
+  private baseUrl = 'http://localhost:8080/api/auth';
+
   constructor(private http: HttpClient) {}
 
-  getMessage() {
-    return this.http.get<{ message: string }>('http://localhost:8080/api/message')
-      .pipe(
-        catchError(err => {
-          console.error('Error fetching message:', err);
-          return of({ message: 'Error connecting to Spring Boot' });
-        })
-      );
+  login(data: { username: string; password: string }): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/login`, data);
+  }
+
+  register(data: { username: string; password: string; role: string }): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/register`, data);
   }
 }
