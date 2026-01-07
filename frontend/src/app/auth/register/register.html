@@ -1,0 +1,33 @@
+<div class="register-container">
+  <div class="register-card">
+    <h2>Registracija</h2>
+
+    <input
+      type="text"
+      placeholder="Username"
+      [(ngModel)]="username"
+    />
+
+    <input
+      type="password"
+      placeholder="Password"
+      [(ngModel)]="password"
+    />
+
+    <input
+      type="password"
+      placeholder="Confirm Password"
+      [(ngModel)]="confirmPassword"
+    />
+
+    <button (click)="register()">Register</button>
+
+    <p *ngIf="error" class="error">{{ error }}</p>
+    <p *ngIf="success" class="success">{{ success }}</p>
+
+<p class="login-link">
+  Već imate nalog? <a routerLink="/auth/login" class="nav-link">Prijavite se</a>
+</p>
+
+  </div>
+</div>
