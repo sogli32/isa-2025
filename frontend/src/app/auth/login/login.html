@@ -1,9 +1,22 @@
-<h2>Login</h2>
+<div class="login-container">
+  <div class="login-card">
+    <h2>Login</h2>
 
-<input type="text" placeholder="Username" [(ngModel)]="username" />
-<input type="password" placeholder="Password" [(ngModel)]="password" />
+    <input
+      type="text"
+      placeholder="Username"
+      [(ngModel)]="username"
+    />
 
-<button (click)="login()">Login</button>
+    <input
+      type="password"
+      placeholder="Password"
+      [(ngModel)]="password"
+    />
 
-<p *ngIf="error" style="color:red">{{ error }}</p>
-<p *ngIf="success" style="color:green">{{ success }}</p>
+    <button (click)="login()">Login</button>
+
+    <p *ngIf="error" class="error">{{ error }}</p>
+    <p *ngIf="success" class="success">{{ success }}</p>
+  </div>
+</div>
