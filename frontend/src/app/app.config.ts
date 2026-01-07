@@ -7,6 +7,6 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    importProvidersFrom(HttpClientModule) // <--- ovo je ključno
+    importProvidersFrom(HttpClientModule)
   ]
 };
