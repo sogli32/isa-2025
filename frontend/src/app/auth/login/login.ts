@@ -39,9 +39,17 @@ export class LoginComponent {
         // this.router.navigate(['/']);
       },
       error: (err) => {
-        this.error = err.error?.error || 'Neispravni podaci';
-        this.cdr.detectChanges();
-      }
+  if (err.status === 429) {
+    this.error = 'Previše pokušaja prijave. Pokušajte ponovo za minut.';
+  } else if (err.status === 401) {
+    this.error = 'Pogrešan email ili lozinka.';
+  } else {
+    this.error = 'Došlo je do greške. Pokušajte kasnije.';
+  }
+
+  this.cdr.detectChanges();
+}
+
     });
   }
 
