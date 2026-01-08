@@ -28,6 +28,12 @@ export class AuthService {
       role
     });
   }
+activateAccount(token: string) {
+  const params = { token: token }; // Angular će automatski enkodovati token
+  return this.http.get(`${this.apiUrl}/activate`, { params });
+}
+
+
 
   logout() {
     this.user.set(null);

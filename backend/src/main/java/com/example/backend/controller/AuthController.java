@@ -50,4 +50,18 @@ public class AuthController {
             ));
         }
     }
+    @GetMapping("/activate")
+    public ResponseEntity<Map<String, String>> activateAccount(@RequestParam("token") String token) {
+        try {
+            userService.activateUser(token);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Nalog aktiviran! Sada se možete prijaviti."
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", e.getMessage()
+            ));
+        }
+    }
+
 }
