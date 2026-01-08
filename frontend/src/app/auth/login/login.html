@@ -1,28 +1,17 @@
 <div class="login-container">
   <div class="login-card">
-    <h2>Login</h2>
+    <h2>Prijava</h2>
 
-    <input
-      type="text"
-      placeholder="Username"
-      [(ngModel)]="username"
-    />
-
-    <input
-      type="password"
-      placeholder="Password"
-      [(ngModel)]="password"
-    />
+    <input type="email" placeholder="Email" [(ngModel)]="email" />
+    <input type="password" placeholder="Lozinka" [(ngModel)]="password" />
 
     <button (click)="login()">Login</button>
 
     <p *ngIf="error" class="error">{{ error }}</p>
     <p *ngIf="success" class="success">{{ success }}</p>
-<p class="register-link">
-  Nemate nalog? <a routerLink="/auth/register" class="nav-link">Registrujte se</a>
-</p>
 
-
-
+    <p class="register-link">
+      Nemate nalog? <a routerLink="/auth/register" class="nav-link">Registrujte se</a>
+    </p>
   </div>
 </div>

@@ -1,5 +1,7 @@
 package com.example.backend.controller;
 
+import com.example.backend.dto.LoginRequest;
+import com.example.backend.dto.RegisterRequest;
 import com.example.backend.model.User;
 import com.example.backend.services.UserService;
 import org.springframework.http.ResponseEntity;
@@ -16,32 +18,36 @@ public class AuthController {
     public AuthController(UserService userService) {
         this.userService = userService;
     }
-    @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> body) {
-        String username = body.get("username");
-        String password = body.get("password");
 
-        return userService.login(username, password)
+    // ===== LOGIN =====
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest request) {
+
+        return userService.login(request.getEmail(), request.getPassword())
                 .map(user -> ResponseEntity.ok(Map.of(
                         "username", user.getUsername(),
                         "role", user.getRole()
                 )))
                 .orElseGet(() -> ResponseEntity.status(401).body(Map.of(
-                        "error", "Invalid credentials"
+                        "error", "Invalid email or password"
                 )));
     }
 
+    // ===== REGISTER =====
     @PostMapping("/register")
-    public ResponseEntity<Map<String, String>> register(@RequestBody Map<String, String> body) {
-        String username = body.get("username");
-        String password = body.get("password");
-        String role = body.get("role");
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
 
-        User user = userService.register(username, password, role);
-        return ResponseEntity.ok(Map.of(
-                "username", user.getUsername(),
-                "role", user.getRole()
-        ));
+        try {
+            User user = userService.register(request);
+
+            return ResponseEntity.ok(Map.of(
+                    "username", user.getUsername(),
+                    "role", user.getRole()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", e.getMessage()
+            ));
+        }
     }
-
 }

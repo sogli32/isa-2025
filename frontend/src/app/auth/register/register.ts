@@ -13,8 +13,12 @@ import { AppService } from '../../app.service';
 })
 export class RegisterComponent {
   username: string = '';
+  email: string = '';
   password: string = '';
   confirmPassword: string = '';
+  firstName: string = '';
+  lastName: string = '';
+  address: string = '';
   error: string = '';
   success: string = '';
 
@@ -24,7 +28,8 @@ export class RegisterComponent {
     this.error = '';
     this.success = '';
 
-    if (!this.username || !this.password || !this.confirmPassword) {
+    // Validacija svih polja
+    if (!this.username || !this.email || !this.password || !this.confirmPassword || !this.firstName || !this.lastName || !this.address) {
       this.error = 'Molimo unesite sve podatke';
       return;
     }
@@ -34,10 +39,15 @@ export class RegisterComponent {
       return;
     }
 
-    // Poziv servisa za registraciju (pretpostavljamo da postoji)
+    // Poziv servisa za registraciju
     this.appService.register({
       username: this.username,
+      email: this.email,
       password: this.password,
+      confirmPassword: this.confirmPassword,
+      firstName: this.firstName,
+      lastName: this.lastName,
+      address: this.address,
       role: 'USER'
     }).subscribe({
       next: (response) => {
@@ -45,7 +55,7 @@ export class RegisterComponent {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.error = 'Greška prilikom registracije';
+        this.error = err.error?.error || 'Greška prilikom registracije';
         this.cdr.detectChanges();
       }
     });
