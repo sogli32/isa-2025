@@ -51,7 +51,7 @@ export class RegisterComponent {
       role: 'USER'
     }).subscribe({
       next: (response) => {
-        this.success = 'Uspešno ste registrovani! Možete se prijaviti.';
+        this.success = 'Da biste se prijavili aktivirajte nalog, poslato na mail.';
         this.cdr.detectChanges();
       },
       error: (err) => {

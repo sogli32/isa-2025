@@ -10,6 +10,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+
     @Column(nullable = false, unique = true, length = 50)
     private String username;
 
@@ -31,7 +32,8 @@ public class User {
     @Column(nullable = false, length = 20)
     private String role; // USER | ADMIN
 
-
+    private boolean enabled = false;
+    private String activationToken;
     public User() {}
 
     public User(
@@ -66,6 +68,14 @@ public class User {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
     public String getEmail() {
