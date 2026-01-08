@@ -2,32 +2,21 @@
   <div class="register-card">
     <h2>Registracija</h2>
 
-    <input
-      type="text"
-      placeholder="Username"
-      [(ngModel)]="username"
-    />
-
-    <input
-      type="password"
-      placeholder="Password"
-      [(ngModel)]="password"
-    />
-
-    <input
-      type="password"
-      placeholder="Confirm Password"
-      [(ngModel)]="confirmPassword"
-    />
+    <input type="text" placeholder="Username" [(ngModel)]="username" />
+    <input type="email" placeholder="Email" [(ngModel)]="email" />
+    <input type="password" placeholder="Password" [(ngModel)]="password" />
+    <input type="password" placeholder="Confirm Password" [(ngModel)]="confirmPassword" />
+    <input type="text" placeholder="First Name" [(ngModel)]="firstName" />
+    <input type="text" placeholder="Last Name" [(ngModel)]="lastName" />
+    <input type="text" placeholder="Address" [(ngModel)]="address" />
 
     <button (click)="register()">Register</button>
 
     <p *ngIf="error" class="error">{{ error }}</p>
     <p *ngIf="success" class="success">{{ success }}</p>
 
-<p class="login-link">
-  Već imate nalog? <a routerLink="/auth/login" class="nav-link">Prijavite se</a>
-</p>
-
+    <p class="login-link">
+      Već imate nalog? <a routerLink="/auth/login" class="nav-link">Prijavite se</a>
+    </p>
   </div>
 </div>

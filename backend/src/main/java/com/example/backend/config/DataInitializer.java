@@ -12,21 +12,34 @@ public class DataInitializer {
     @Bean
     CommandLineRunner initUsers(UserRepository userRepository) {
         return args -> {
-            if (userRepository.findByUsername("user").isEmpty()) {
+
+            // ===== USER =====
+            if (!userRepository.existsByEmail("user@mail.com")) {
                 User user = new User();
                 user.setUsername("user");
-                user.setPassword("user");
+                user.setEmail("user@mail.com");
+                user.setPassword("user123"); // hashiranje dolazi kasnije
+                user.setFirstName("Test");
+                user.setLastName("User");
+                user.setAddress("Test Address 1");
                 user.setRole("USER");
+
                 userRepository.save(user);
             }
-            if (userRepository.findByUsername("admin").isEmpty()) {
+
+            // ===== ADMIN =====
+            if (!userRepository.existsByEmail("admin@mail.com")) {
                 User admin = new User();
                 admin.setUsername("admin");
-                admin.setPassword("admin");
+                admin.setEmail("admin@mail.com");
+                admin.setPassword("admin123"); // hashiranje dolazi kasnije
+                admin.setFirstName("Admin");
+                admin.setLastName("User");
+                admin.setAddress("Admin Address");
                 admin.setRole("ADMIN");
+
                 userRepository.save(admin);
             }
         };
     }
 }
-

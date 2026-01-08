@@ -1,7 +1,7 @@
 import { Component, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { AppService } from '../../app.service';
 
 @Component({
@@ -12,34 +12,40 @@ import { AppService } from '../../app.service';
   imports: [CommonModule, FormsModule, RouterModule]
 })
 export class LoginComponent {
-  username: string = '';
+  email: string = '';
   password: string = '';
   error: string = '';
   success: string = '';
 
-  constructor(private appService: AppService, private cdr: ChangeDetectorRef) {}
-login() {
-  this.error = '';
-  this.success = '';
+  constructor(private appService: AppService, private cdr: ChangeDetectorRef, private router: Router) {}
 
-  if (!this.username || !this.password) {
-    this.error = 'Please enter username and password';
-    return;
+  login() {
+    this.error = '';
+    this.success = '';
+
+    if (!this.email || !this.password) {
+      this.error = 'Molimo unesite email i lozinku';
+      return;
+    }
+
+    this.appService.login({
+      email: this.email,
+      password: this.password
+    }).subscribe({
+      next: (response) => {
+        this.success = `Dobrodošli ${response.username} (${response.role})`;
+        this.cdr.detectChanges();
+        // Opcionalno: redirect na home ili dashboard
+        // this.router.navigate(['/']);
+      },
+      error: (err) => {
+        this.error = err.error?.error || 'Neispravni podaci';
+        this.cdr.detectChanges();
+      }
+    });
   }
 
-  this.appService.login({
-    username: this.username,
-    password: this.password
-  }).subscribe({
-    next: (response) => {
-      this.success = `Welcome ${response.username} (${response.role})`;
-      this.cdr.detectChanges();
-    },
-    error: (err) => {
-      this.error = 'Invalid credentials';
-      this.cdr.detectChanges();
-    }
-  });
-}
-
+  navigateToRegister() {
+    this.router.navigate(['/auth/register']);
+  }
 }

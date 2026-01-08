@@ -9,11 +9,11 @@ export class AppService {
 
   constructor(private http: HttpClient) {}
 
-  login(data: { username: string; password: string }): Observable<any> {
+  login(data: { email: string; password: string }): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/login`, data);
   }
 
-  register(data: { username: string; password: string; role: string }): Observable<any> {
+  register(data: { username: string; email: string; password: string; confirmPassword: string; firstName: string; lastName: string; address: string; role: string }): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/register`, data);
   }
 }
