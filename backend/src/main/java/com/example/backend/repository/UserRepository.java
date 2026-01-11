@@ -9,10 +9,8 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    // koristi se za login (email + password)
     Optional<User> findByEmail(String email);
 
-    // validacija prilikom registracije
     boolean existsByUsername(String username);
 
     boolean existsByEmail(String email);

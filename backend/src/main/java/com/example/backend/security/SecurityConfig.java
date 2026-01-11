@@ -20,9 +20,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // nova sintaksa
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                		.requestMatchers("/hello").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/videos").permitAll()
+                        .requestMatchers("/api/videos/*/thumbnail").permitAll()
+                        .requestMatchers("/api/videos/*/stream").permitAll()
+                        .requestMatchers("/api/videos/*").permitAll() 
+                        .requestMatchers("/api/videos/*/view").permitAll() 
+                        
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
