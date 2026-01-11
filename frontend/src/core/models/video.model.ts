@@ -8,6 +8,9 @@ export interface Video {
   viewCount: number;
   username: string;
   userId: number;
+
+    likeCount?: number; 
+   likedByUser?: boolean; 
 }
 
 export interface CreateVideoRequest {

@@ -132,11 +132,13 @@ export class UploadVideoComponent {
         this.success = 'Video uspešno postavljen! 🎬';
         this.uploading = false;
 
-        // Reset forme
-        setTimeout(() => {
-          this.resetForm();
-          this.router.navigate(['/']);
-        }, 2000);
+setTimeout(() => {
+  this.resetForm();
+  this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
+    this.router.navigate(['/']);
+  });
+}, 2000);
+
       },
       error: (err) => {
         clearInterval(progressInterval);
