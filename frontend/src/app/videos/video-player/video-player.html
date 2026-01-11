@@ -1,0 +1,75 @@
+<div class="video-player-container">
+  <!-- Loading state -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Učitavanje videa...</p>
+  </div>
+
+  <!-- Error state -->
+  <div *ngIf="error && !loading" class="error-container">
+    <div class="error-box">
+      <h2>❌ Greška</h2>
+      <p>{{ error }}</p>
+      <button (click)="goBack()" class="btn-back">Nazad na početnu</button>
+    </div>
+  </div>
+
+  <!-- Video player -->
+  <div *ngIf="video && !loading && !error" class="player-wrapper">
+    <!-- Video element -->
+    <div class="video-wrapper">
+      <video 
+        [src]="videoStreamUrl" 
+        controls 
+        class="video-element"
+        autoplay
+      >
+        Vaš browser ne podržava video reprodukciju.
+      </video>
+    </div>
+
+    <!-- Video info -->
+    <div class="video-details">
+      <button (click)="goBack()" class="btn-back-top">← Nazad</button>
+
+      <h1 class="video-title">{{ video.title }}</h1>
+
+      <div class="video-stats">
+        <span class="stat">
+          <span class="icon">👁️</span>
+          {{ formatViewCount(video.viewCount) }} pregleda
+        </span>
+        <span class="stat">
+          <span class="icon">📅</span>
+          {{ formatDate(video.createdAt) }}
+        </span>
+        <span class="stat" *ngIf="video.location">
+          <span class="icon">📍</span>
+          {{ video.location }}
+        </span>
+      </div>
+
+      <div class="channel-info">
+        <div class="avatar">{{ video.username.charAt(0).toUpperCase() }}</div>
+        <span class="username">{{ video.username }}</span>
+      </div>
+
+      <div class="description-box">
+        <h3>Opis</h3>
+        <p class="description">{{ video.description || 'Nema opisa' }}</p>
+      </div>
+
+      <div class="tags-box" *ngIf="video.tags">
+        <h3>Tagovi</h3>
+        <div class="tags">
+          <span 
+            *ngFor="let tag of video.tags.split(',')" 
+            class="tag"
+          >
+            #{{ tag.trim() }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
