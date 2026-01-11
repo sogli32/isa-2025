@@ -1,0 +1,60 @@
+<div class="video-list-container">
+  <div class="header">
+    <h1>🎬 Jutjubić</h1>
+    <p class="subtitle">Bez reklama. Zauvek.</p>
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Učitavanje videa...</p>
+  </div>
+
+  <!-- Error state -->
+  <div *ngIf="error && !loading" class="error">
+    {{ error }}
+  </div>
+
+  <!-- Video grid -->
+  <div *ngIf="!loading && !error" class="video-grid">
+    <div 
+      *ngFor="let video of videos" 
+      class="video-card"
+      (click)="openVideo(video.id)"
+    >
+      <div class="thumbnail-wrapper">
+        <img 
+          [src]="getThumbnailUrl(video.id)" 
+          [alt]="video.title"
+          class="thumbnail"
+        />
+        <div class="view-count-badge">
+          👁️ {{ formatViewCount(video.viewCount) }}
+        </div>
+      </div>
+
+      <div class="video-info">
+        <h3 class="video-title">{{ video.title }}</h3>
+        <p class="video-meta">
+          <span class="username">{{ video.username }}</span>
+          <span class="separator">•</span>
+          <span class="date">{{ formatDate(video.createdAt) }}</span>
+        </p>
+        <div class="tags" *ngIf="video.tags">
+          <span 
+            *ngFor="let tag of video.tags.split(',').slice(0, 3)" 
+            class="tag"
+          >
+            #{{ tag.trim() }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading && !error && videos.length === 0" class="empty-state">
+    <p>📹 Nema videa za prikaz</p>
+    <p class="empty-subtitle">Budite prvi koji će postaviti video!</p>
+  </div>
+</div>
