@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/videos")
@@ -91,6 +93,7 @@ public class VideoController {
     }
 
 
+
     @GetMapping("/{id}/stream")
     public ResponseEntity<?> streamVideo(@PathVariable Long id) {
         try {
@@ -147,6 +150,29 @@ public class VideoController {
         }
     }
 
+    @PostMapping("/{id}/like")
+    public ResponseEntity<?> likeVideo(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        try {
+            String userEmail = extractEmailFromToken(authHeader);
+            boolean liked = videoService.toggleLike(id, userEmail);
+            Long likesCount = videoService.getLikesCount(id);
+
+            // Korišćenje HashMap da bude kompatibilno
+            Map<String, Object> response = new HashMap<>();
+            response.put("liked", liked);
+            response.put("likeCount", likesCount);
+
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
+    }
 
     private String extractEmailFromToken(String authHeader) {
         String token = authHeader.replace("Bearer ", "");
