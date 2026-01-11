@@ -2,6 +2,13 @@
   <span class="logo">ISA Project</span>
 
   <a routerLink="/" class="nav-link">Home</a>
+    <a 
+    *ngIf="authService.user()" 
+    routerLink="/upload" 
+    class="nav-link"
+  >
+    Upload Video
+  </a>
   <a routerLink="/auth/login" class="nav-link">Login</a>
 </nav>
 

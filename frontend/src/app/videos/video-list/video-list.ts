@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core'; // DODAJ OVO
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { VideoService } from '../../../core/services/video.service';
@@ -18,7 +18,8 @@ export class VideoListComponent implements OnInit {
 
   constructor(
     private videoService: VideoService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef 
   ) {}
 
   ngOnInit() {
@@ -33,10 +34,12 @@ export class VideoListComponent implements OnInit {
       next: (videos) => {
         this.videos = videos;
         this.loading = false;
+        this.cdr.detectChanges(); 
       },
       error: (err) => {
         this.error = 'Greška pri učitavanju videa';
         this.loading = false;
+        this.cdr.detectChanges(); // DODAJ OVO
       }
     });
   }
