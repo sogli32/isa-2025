@@ -5,21 +5,39 @@ import { tap } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-
   private apiUrl = 'http://localhost:8080/api/auth';
 
-  user = signal<User | null>(null);
+  // Inicijalizuj signal sa korisnikom iz localStorage
+  user = signal<User | null>(this.getStoredUser());
 
   constructor(private http: HttpClient) {}
 
-  login(username: string, password: string) {
-    return this.http.post<User>(`${this.apiUrl}/login`, {
-      username,
-      password
-    }).pipe(
-      tap(user => this.user.set(user))
-    );
+  // Metoda za dobijanje korisnika iz localStorage
+  private getStoredUser(): User | null {
+    try {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (error) {
+      console.error('Error parsing user from localStorage:', error);
+      return null;
+    }
   }
+login(email: string, password: string) {
+  return this.http.post<{ token: string; username: string; role: string }>(`${this.apiUrl}/login`, {
+    email,
+    password
+  }).pipe(
+    tap(res => {
+      localStorage.setItem('token', res.token);
+      const userData = { username: res.username, role: res.role };
+      localStorage.setItem('user', JSON.stringify(userData));
+      this.user.set(userData as User);
+      console.log('User logged in:', res);
+    })
+  );
+}
+
+
 
   register(username: string, password: string, role: string) {
     return this.http.post<User>(`${this.apiUrl}/register`, {
@@ -28,15 +46,22 @@ export class AuthService {
       role
     });
   }
-activateAccount(token: string) {
-  const params = { token: token }; // Angular će automatski enkodovati token
-  return this.http.get(`${this.apiUrl}/activate`, { params });
+
+getToken(): string | null {
+  return localStorage.getItem('token');
 }
 
 
+  activateAccount(token: string) {
+    const params = { token: token };
+    return this.http.get(`${this.apiUrl}/activate`, { params });
+  }
 
   logout() {
+    // Obriši korisnika iz localStorage i signala
+    localStorage.removeItem('user');
     this.user.set(null);
+    console.log('User logged out'); // Debug
   }
 
   isLoggedIn() {

@@ -14,62 +14,133 @@
     </div>
   </div>
 
-  <!-- Video player -->
-  <div *ngIf="video && !loading && !error" class="player-wrapper">
-    <!-- Video element -->
-    <div class="video-wrapper">
-      <video 
-        [src]="videoStreamUrl" 
-        controls 
-        class="video-element"
-        autoplay
-      >
-        Vaš browser ne podržava video reprodukciju.
-      </video>
-    </div>
+  <!-- Video + sidebar -->
+  <div *ngIf="video && !loading && !error" class="player-wrapper flex-container">
 
-    <!-- Video info -->
-    <div class="video-details">
-      <button (click)="goBack()" class="btn-back-top">← Nazad</button>
-
-      <h1 class="video-title">{{ video.title }}</h1>
-
-      <div class="video-stats">
-        <span class="stat">
-          <span class="icon">👁️</span>
-          {{ formatViewCount(video.viewCount) }} pregleda
-        </span>
-        <span class="stat">
-          <span class="icon">📅</span>
-          {{ formatDate(video.createdAt) }}
-        </span>
-        <span class="stat" *ngIf="video.location">
-          <span class="icon">📍</span>
-          {{ video.location }}
-        </span>
+    <!-- LEVA KOLONA: video + detalji -->
+    <div class="main-video">
+      <div class="video-wrapper">
+        <video [src]="videoStreamUrl" controls class="video-element" autoplay>
+          Vaš browser ne podržava video reprodukciju.
+        </video>
       </div>
 
-      <div class="channel-info">
-        <div class="avatar">{{ video.username.charAt(0).toUpperCase() }}</div>
-        <span class="username">{{ video.username }}</span>
-      </div>
+      <div class="video-details">
+        <button (click)="goBack()" class="btn-back-top">← Nazad</button>
 
-      <div class="description-box">
-        <h3>Opis</h3>
-        <p class="description">{{ video.description || 'Nema opisa' }}</p>
-      </div>
+        <h1 class="video-title">{{ video.title }}</h1>
 
-      <div class="tags-box" *ngIf="video.tags">
-        <h3>Tagovi</h3>
-        <div class="tags">
-          <span 
-            *ngFor="let tag of video.tags.split(',')" 
-            class="tag"
-          >
-            #{{ tag.trim() }}
-          </span>
+       <div class="video-stats">
+  <span class="stat">
+    <span class="icon">👁️</span>
+    {{ formatViewCount(video.viewCount) }} pregleda
+  </span>
+  <span class="stat">
+    <span class="icon">📅</span>
+    {{ formatDate(video.createdAt) }}
+  </span>
+  <span class="stat" *ngIf="video.location">
+    <span class="icon">📍</span>
+    {{ video.location }}
+  </span>
+
+  <!-- LIKES SECTION -->
+  <span class="stat like-section" *ngIf="video">
+    <button 
+      (click)="likeVideo()"
+      [class.liked]="video.likedByUser"
+      [disabled]="!commentService.authService.isLoggedIn()"
+      class="btn-like">
+      {{ video.likedByUser ? '❤️ Lajkovano' : '🤍 Lajk' }}
+    </button>
+    <span class="like-count">{{ video.likeCount || 0 }}</span>
+  </span>
+</div>
+
+
+        <div class="channel-info">
+          <div class="avatar">{{ video.username.charAt(0).toUpperCase() }}</div>
+          <span class="username">{{ video.username }}</span>
         </div>
+
+        <div class="description-box">
+          <h3>Opis</h3>
+          <p class="description">{{ video.description || 'Nema opisa' }}</p>
+        </div>
+
+        <div class="tags-box" *ngIf="video.tags">
+          <h3>Tagovi</h3>
+          <div class="tags">
+            <span *ngFor="let tag of video.tags.split(',')" class="tag">
+              #{{ tag.trim() }}
+            </span>
+          </div>
+        </div>
+<div class="comments-section">
+  <h3>Komentari ({{ comments.length }})</h3>
+
+  <!-- Forma za dodavanje komentara (samo ulogovani) -->
+  <div *ngIf="commentService.authService.isLoggedIn(); else loginPrompt" class="add-comment">
+    <textarea 
+      [(ngModel)]="newComment"
+      placeholder="Ostavite komentar..."
+      rows="3"
+      [disabled]="postingComment">
+    </textarea>
+    <button 
+      (click)="addComment()" 
+      [disabled]="postingComment || !newComment.trim()"
+      class="btn-post">
+      {{ postingComment ? 'Postavljanje...' : 'Postavi komentar' }}
+    </button>
+  </div>
+
+  <!-- Poruka za neulogovane -->
+  <ng-template #loginPrompt>
+    <div class="login-prompt">
+      <p>Morate biti ulogovani da biste ostavili komentar.</p>
+    </div>
+  </ng-template>
+
+  <!-- Lista komentara (vidljiva svima, čak i neulogovani) -->
+  <div class="comments-list">
+    <div *ngIf="comments.length === 0" class="no-comments">
+      <p>Još nema komentara.</p>
+    </div>
+
+    <div *ngFor="let comment of comments" class="comment">
+      <div class="comment-header">
+        <span class="comment-username">{{ comment.username }}</span>
+        <span class="comment-date">{{ formatDate(comment.createdAt) }}</span>
+      </div>
+      <p class="comment-content">{{ comment.content }}</p>
+    </div>
+  </div>
+</div>
+
       </div>
     </div>
+
+<div class="sidebar">
+  <h3>Ostali videi</h3>
+  <div *ngFor="let v of otherVideos" class="sidebar-video" (click)="goToVideo(v.id)">
+    <div class="thumbnail-container">
+      <img 
+        class="sidebar-thumbnail"
+        [src]="getThumbnailUrl(v.id)" 
+        alt="{{ v.title }}" 
+        onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTY4IiBoZWlnaHQ9Ijk0IiB2aWV3Qm94PSIwIDAgMTY4IDk0IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxNjgiIGhlaWdodD0iOTQiIGZpbGw9IiNGMEYwRjAiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPk5vIGltYWdlPC90ZXh0Pjwvc3ZnPg=='"
+      />
+    </div>
+    <div class="sidebar-content">
+      <div class="sidebar-title">{{ v.title }}</div>
+      <div class="sidebar-username">{{ v.username }}</div>
+      <div class="sidebar-stats">
+        <span>👁️ {{ formatViewCount(v.viewCount) }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
   </div>
 </div>

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { AppService } from '../../app.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -17,7 +18,11 @@ export class LoginComponent {
   error: string = '';
   success: string = '';
 
-  constructor(private appService: AppService, private cdr: ChangeDetectorRef, private router: Router) {}
+  constructor(
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef,
+    private router: Router
+  ) {}
 
   login() {
     this.error = '';
@@ -28,28 +33,24 @@ export class LoginComponent {
       return;
     }
 
-    this.appService.login({
-      email: this.email,
-      password: this.password
-    }).subscribe({
-      next: (response) => {
-        this.success = `Dobrodošli ${response.username} (${response.role})`;
+    this.authService.login(this.email, this.password).subscribe({
+      next: (user) => {
+        this.success = `Dobrodošli ${user.username} (${user.role})`;
         this.cdr.detectChanges();
-        // Opcionalno: redirect na home ili dashboard
-        // this.router.navigate(['/']);
+
+        // Redirect na home ili dashboard
+        this.router.navigate(['/']);
       },
       error: (err) => {
-  if (err.status === 429) {
-    this.error = 'Previše pokušaja prijave. Pokušajte ponovo za minut.';
-  } else if (err.status === 401) {
-    this.error = 'Pogrešan email ili lozinka.';
-  } else {
-    this.error = 'Došlo je do greške. Pokušajte kasnije.';
-  }
-
-  this.cdr.detectChanges();
-}
-
+        if (err.status === 429) {
+          this.error = 'Previše pokušaja prijave. Pokušajte ponovo za minut.';
+        } else if (err.status === 401) {
+          this.error = 'Pogrešan email ili lozinka.';
+        } else {
+          this.error = 'Došlo je do greške. Pokušajte kasnije.';
+        }
+        this.cdr.detectChanges();
+      }
     });
   }
 
