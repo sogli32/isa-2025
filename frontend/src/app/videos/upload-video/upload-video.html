@@ -1,0 +1,109 @@
+<div class="upload-container">
+  <div class="upload-card">
+    <h2>🎬 Postavi Video</h2>
+
+    <div class="form-group">
+      <label>Naslov</label>
+      <input 
+        type="text" 
+        placeholder="Unesite naslov videa" 
+        [(ngModel)]="title"
+        [disabled]="uploading"
+      />
+    </div>
+
+    <div class="form-group">
+      <label>Opis</label>
+      <textarea 
+        placeholder="Opišite vaš video" 
+        [(ngModel)]="description"
+        rows="4"
+        [disabled]="uploading"
+      ></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Tagovi</label>
+      <input 
+        type="text" 
+        placeholder="npr: vlog, tutorial, muzika (razdvojeni zarezom)" 
+        [(ngModel)]="tags"
+        [disabled]="uploading"
+      />
+    </div>
+
+    <div class="form-group">
+      <label>Lokacija (opciono)</label>
+      <input 
+        type="text" 
+        placeholder="npr: Beograd, Srbija" 
+        [(ngModel)]="location"
+        [disabled]="uploading"
+      />
+    </div>
+
+    <div class="form-group">
+      <label>Thumbnail slika</label>
+      <div class="file-input-wrapper">
+        <input 
+          type="file" 
+          accept="image/*"
+          (change)="onThumbnailFileSelected($event)"
+          [disabled]="uploading"
+          id="thumbnailInput"
+        />
+        <label for="thumbnailInput" class="file-label">
+           Izaberi sliku
+        </label>
+        <span class="file-name" *ngIf="thumbnailFileName">{{ thumbnailFileName }}</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Video fajl (MP4, max 200MB)</label>
+      <div class="file-input-wrapper">
+        <input 
+          type="file" 
+          accept="video/mp4"
+          (change)="onVideoFileSelected($event)"
+          [disabled]="uploading"
+          id="videoInput"
+        />
+        <label for="videoInput" class="file-label video-button">
+           Izaberi video
+        </label>
+        <span class="file-name" *ngIf="videoFileName">{{ videoFileName }}</span>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-container" *ngIf="uploading">
+      <div class="progress-bar">
+        <div class="progress-fill" [style.width.%]="uploadProgress"></div>
+      </div>
+      <p class="progress-text">Postavjanje... {{ uploadProgress }}%</p>
+    </div>
+
+    <!-- Error i success poruke -->
+    <p *ngIf="error" class="error">{{ error }}</p>
+    <p *ngIf="success" class="success">{{ success }}</p>
+
+    <!-- Dugmad -->
+    <div class="button-group">
+      <button 
+        (click)="uploadVideo()" 
+        [disabled]="uploading"
+        class="btn-upload"
+      >
+        {{ uploading ? 'Postavlja se...' : 'Postavi video' }}
+      </button>
+      <button 
+        (click)="cancel()" 
+        [disabled]="uploading"
+        class="btn-cancel"
+      >
+        Otkaži
+      </button>
+    </div>
+  </div>
+</div>
