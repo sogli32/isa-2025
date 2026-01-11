@@ -44,6 +44,23 @@ login(email: string, password: string) {
     });
   }
 
+  getToken(): string | null {
+  const currentUser = this.user();
+  if (currentUser && (currentUser as any).token) {
+    return (currentUser as any).token; // cast na any ako User model nema token
+  }
+
+  // fallback: proveri localStorage
+  const storedUserStr = localStorage.getItem('user');
+  if (storedUserStr) {
+    const storedUser = JSON.parse(storedUserStr);
+    return storedUser.token ?? null;
+  }
+
+  return null;
+}
+
+
   activateAccount(token: string) {
     const params = { token: token };
     return this.http.get(`${this.apiUrl}/activate`, { params });

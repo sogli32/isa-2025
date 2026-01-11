@@ -3,13 +3,16 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { VideoService } from '../../../core/services/video.service';
 import { Video } from '../../../core/models/video.model';
+import { VideoComment } from '../../../core/models/comment.model';
+import { CommentService } from '../../../core/services/comment.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-video-player',
   templateUrl: './video-player.html',
   styleUrls: ['./video-player.css'],
   standalone: true,
-  imports: [CommonModule]
+  imports: [CommonModule,FormsModule]
 })
 export class VideoPlayerComponent implements OnInit {
   video: Video | null = null;
@@ -20,26 +23,64 @@ export class VideoPlayerComponent implements OnInit {
 
   otherVideos: Video[] = [];
 
+  comments: VideoComment[] = [];
+  newComment: string = '';
+  postingComment: boolean = false;
+
+  
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private videoService: VideoService,
-    private cdr: ChangeDetectorRef // DODAJ OVO
+    public commentService: CommentService,
+    private cdr: ChangeDetectorRef
   ) {}
 
-ngOnInit() {
-    const videoId = Number(this.route.snapshot.paramMap.get('id'));
-    
-    if (!videoId || isNaN(videoId)) {
-      this.error = 'Neispravan ID videa';
-      this.loading = false;
-      this.cdr.detectChanges();
-      return;
-    }
+  ngOnInit() {
+  const videoId = Number(this.route.snapshot.paramMap.get('id'));
+  if (!videoId || isNaN(videoId)) {
+    this.error = 'Neispravan ID videa';
+    this.loading = false;
+    this.cdr.detectChanges();
+    return;
+  }
 
-    this.loadVideo(videoId);
-    this.loadOtherVideos(videoId); // učitaj ostale videe
+  this.loadVideo(videoId);
+  this.loadOtherVideos(videoId);
+  this.loadComments(videoId);
 }
+
+
+
+  loadComments(videoId: number) {
+    this.commentService.getComments(videoId).subscribe({
+      next: (comments) => {
+        this.comments = comments;
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Failed to load comments', err)
+    });
+  }
+
+  addComment() {
+    if (!this.newComment.trim()) return;
+
+    if (!this.video) return;
+    this.postingComment = true;
+
+    this.commentService.postComment(this.video.id, this.newComment).subscribe({
+      next: (comment) => {
+        this.comments.push(comment);
+        this.newComment = '';
+        this.postingComment = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Failed to post comment', err);
+        this.postingComment = false;
+      }
+    });
+  }
 
   loadVideo(videoId: number) {
     this.loading = true;

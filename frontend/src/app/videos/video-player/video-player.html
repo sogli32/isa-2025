@@ -63,6 +63,48 @@
             </span>
           </div>
         </div>
+<div class="comments-section">
+  <h3>Komentari ({{ comments.length }})</h3>
+
+  <!-- Forma za dodavanje komentara (samo ulogovani) -->
+  <div *ngIf="commentService.authService.isLoggedIn(); else loginPrompt" class="add-comment">
+    <textarea 
+      [(ngModel)]="newComment"
+      placeholder="Ostavite komentar..."
+      rows="3"
+      [disabled]="postingComment">
+    </textarea>
+    <button 
+      (click)="addComment()" 
+      [disabled]="postingComment || !newComment.trim()"
+      class="btn-post">
+      {{ postingComment ? 'Postavljanje...' : 'Postavi komentar' }}
+    </button>
+  </div>
+
+  <!-- Poruka za neulogovane -->
+  <ng-template #loginPrompt>
+    <div class="login-prompt">
+      <p>Morate biti ulogovani da biste ostavili komentar.</p>
+    </div>
+  </ng-template>
+
+  <!-- Lista komentara (vidljiva svima, čak i neulogovani) -->
+  <div class="comments-list">
+    <div *ngIf="comments.length === 0" class="no-comments">
+      <p>Još nema komentara.</p>
+    </div>
+
+    <div *ngFor="let comment of comments" class="comment">
+      <div class="comment-header">
+        <span class="comment-username">{{ comment.username }}</span>
+        <span class="comment-date">{{ formatDate(comment.createdAt) }}</span>
+      </div>
+      <p class="comment-content">{{ comment.content }}</p>
+    </div>
+  </div>
+</div>
+
       </div>
     </div>
 

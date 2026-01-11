@@ -22,14 +22,17 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                		.requestMatchers("/hello").permitAll()
+                        // javni endpointi
+                        .requestMatchers("/hello").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/videos").permitAll()
                         .requestMatchers("/api/videos/*/thumbnail").permitAll()
                         .requestMatchers("/api/videos/*/stream").permitAll()
-                        .requestMatchers("/api/videos/*").permitAll() 
-                        .requestMatchers("/api/videos/*/view").permitAll() 
-                        
+                        .requestMatchers("/api/videos/*").permitAll()
+                        .requestMatchers("/api/videos/*/view").permitAll()
+                        .requestMatchers("/api/comments/*").permitAll() // GET komentari svi
+                        // POST komentar treba autentifikaciju
+                        .requestMatchers("/api/comments/*").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
