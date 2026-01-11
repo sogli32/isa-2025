@@ -5,21 +5,36 @@ import { tap } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-
   private apiUrl = 'http://localhost:8080/api/auth';
 
-  user = signal<User | null>(null);
+  // Inicijalizuj signal sa korisnikom iz localStorage
+  user = signal<User | null>(this.getStoredUser());
 
   constructor(private http: HttpClient) {}
 
-  login(username: string, password: string) {
-    return this.http.post<User>(`${this.apiUrl}/login`, {
-      username,
-      password
-    }).pipe(
-      tap(user => this.user.set(user))
-    );
+  // Metoda za dobijanje korisnika iz localStorage
+  private getStoredUser(): User | null {
+    try {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (error) {
+      console.error('Error parsing user from localStorage:', error);
+      return null;
+    }
   }
+login(email: string, password: string) {
+  return this.http.post<User>(`${this.apiUrl}/login`, {
+    email,    // ovde je email, ne username
+    password
+  }).pipe(
+    tap(user => {
+      localStorage.setItem('user', JSON.stringify(user));
+      this.user.set(user);
+      console.log('User logged in:', user);
+    })
+  );
+}
+
 
   register(username: string, password: string, role: string) {
     return this.http.post<User>(`${this.apiUrl}/register`, {
@@ -28,15 +43,17 @@ export class AuthService {
       role
     });
   }
-activateAccount(token: string) {
-  const params = { token: token }; // Angular će automatski enkodovati token
-  return this.http.get(`${this.apiUrl}/activate`, { params });
-}
 
-
+  activateAccount(token: string) {
+    const params = { token: token };
+    return this.http.get(`${this.apiUrl}/activate`, { params });
+  }
 
   logout() {
+    // Obriši korisnika iz localStorage i signala
+    localStorage.removeItem('user');
     this.user.set(null);
+    console.log('User logged out'); // Debug
   }
 
   isLoggedIn() {
