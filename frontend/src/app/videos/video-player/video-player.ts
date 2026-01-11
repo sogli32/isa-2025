@@ -82,6 +82,22 @@ export class VideoPlayerComponent implements OnInit {
     });
   }
 
+  likeVideo() {
+  if (!this.video) return;
+
+  this.videoService.toggleLike(this.video.id).subscribe({
+    next: (res) => {
+      if (this.video) {
+        this.video.likedByUser = res.liked;
+        this.video.likeCount = res.likeCount;
+        this.cdr.detectChanges();
+      }
+    },
+    error: (err) => console.error('Failed to toggle like', err)
+  });
+}
+
+
   loadVideo(videoId: number) {
     this.loading = true;
     this.error = '';

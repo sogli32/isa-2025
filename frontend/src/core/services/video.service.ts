@@ -76,9 +76,18 @@ export class VideoService {
     return `${this.apiUrl}/${id}/stream`;
   }
 
-  /**
-   * Brisanje videa
-   */
+toggleLike(videoId: number) {
+  const token = localStorage.getItem('token'); // uzmi token direktno
+  const headers = new HttpHeaders({ 'Authorization': `Bearer ${token}` });
+
+  return this.http.post<{ liked: boolean; likeCount: number }>(
+    `${this.apiUrl}/${videoId}/like`,
+    {},
+    { headers }
+  );
+}
+
+
   deleteVideo(id: number): Observable<any> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
