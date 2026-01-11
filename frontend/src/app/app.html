@@ -32,15 +32,6 @@
     Logout ({{ authService.user()?.username }})
   </button>
 
-  <!-- Registracija za neulogovane -->
-  <a 
-    *ngIf="!authService.user()" 
-    routerLink="/auth/register" 
-    class="nav-link"
-    routerLinkActive="active"
-  >
-    Register
-  </a>
 </nav>
 
 <hr />
