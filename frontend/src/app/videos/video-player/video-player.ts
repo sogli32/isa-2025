@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core'; // DODAJ ChangeDetectorRef
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { VideoService } from '../../../core/services/video.service';
@@ -21,7 +21,8 @@ export class VideoPlayerComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private videoService: VideoService
+    private videoService: VideoService,
+    private cdr: ChangeDetectorRef // DODAJ OVO
   ) {}
 
   ngOnInit() {
@@ -30,6 +31,7 @@ export class VideoPlayerComponent implements OnInit {
     if (!videoId || isNaN(videoId)) {
       this.error = 'Neispravan ID videa';
       this.loading = false;
+      this.cdr.detectChanges(); // DODAJ OVO
       return;
     }
 
@@ -39,12 +41,14 @@ export class VideoPlayerComponent implements OnInit {
   loadVideo(videoId: number) {
     this.loading = true;
     this.error = '';
+    this.cdr.detectChanges(); // DODAJ OVO - da se odmah pokaže loading
 
     this.videoService.getVideoById(videoId).subscribe({
       next: (video) => {
         this.video = video;
         this.videoStreamUrl = this.videoService.getVideoStreamUrl(videoId);
         this.loading = false;
+        this.cdr.detectChanges(); // DODAJ OVO
 
         // Increment view count kada se video učita
         this.incrementViewCount(videoId);
@@ -52,6 +56,7 @@ export class VideoPlayerComponent implements OnInit {
       error: (err) => {
         this.error = 'Video nije pronađen';
         this.loading = false;
+        this.cdr.detectChanges(); // DODAJ OVO
       }
     });
   }
@@ -64,6 +69,7 @@ export class VideoPlayerComponent implements OnInit {
           // Ažuriraj view count u UI-ju
           if (this.video) {
             this.video.viewCount += 1;
+            this.cdr.detectChanges(); // DODAJ OVO - za update view count
           }
         },
         error: (err) => {
@@ -73,7 +79,7 @@ export class VideoPlayerComponent implements OnInit {
     }
   }
 
-  goBack() {
+ goBack() {
     this.router.navigate(['/']);
   }
 
