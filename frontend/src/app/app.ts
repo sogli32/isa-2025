@@ -1,8 +1,9 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet, RouterModule } from '@angular/router';
+import { RouterOutlet, RouterModule, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { catchError } from 'rxjs/operators';
+import { AuthService } from '../core/services/auth.service';
 import { of } from 'rxjs';
 
 @Component({
@@ -10,12 +11,17 @@ import { of } from 'rxjs';
   templateUrl: './app.html',
   styleUrls: ['./app.css'],
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterModule] 
+  imports: [CommonModule, RouterOutlet, RouterModule]
 })
 export class App implements OnInit {
   message: string = 'Loading...';
 
-  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private http: HttpClient,
+    private cdr: ChangeDetectorRef,
+    public authService: AuthService, // public da se koristi u HTML
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     this.loadMessage();
@@ -34,5 +40,10 @@ export class App implements OnInit {
         this.message = data;
         this.cdr.detectChanges();
       });
+  }
+
+  logout(): void {
+    this.authService.logout(); // metoda u AuthService koja briše token / korisnika
+    this.router.navigate(['/auth/login']);
   }
 }

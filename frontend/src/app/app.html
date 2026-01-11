@@ -1,10 +1,47 @@
+<!-- app.html - OVO JE ISPRAVNO -->
 <nav class="navbar">
   <span class="logo">ISA Project</span>
 
-  <a routerLink="/" class="nav-link">Home</a>
-  <a routerLink="/auth/login" class="nav-link">Login</a>
+  <a routerLink="/" class="nav-link" routerLinkActive="active">Home</a>
+
+  <a 
+    *ngIf="authService.user()"
+    routerLink="/upload" 
+    class="nav-link"
+    routerLinkActive="active"
+  >
+    Upload Video
+  </a>
+
+  <!-- Login dugme samo za neulogovane -->
+  <a 
+    *ngIf="!authService.user()" 
+    routerLink="/auth/login" 
+    class="nav-link"
+    routerLinkActive="active"
+  >
+    Login
+  </a>
+
+  <!-- Logout dugme samo za ulogovane -->
+  <button 
+    *ngIf="authService.user()" 
+    class="nav-link logout-btn"
+    (click)="logout()"
+  >
+    Logout ({{ authService.user()?.username }})
+  </button>
+
 </nav>
 
 <hr />
 
+
 <router-outlet></router-outlet>
+
+<!-- Debug info (opciono) -->
+<div *ngIf="false" style="padding: 10px; background: #f0f0f0; margin: 10px; border-radius: 5px;">
+  <strong>Debug:</strong><br>
+  User: {{ authService.user() | json }}<br>
+  Message: {{ message }}
+</div>

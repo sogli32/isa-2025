@@ -14,10 +14,11 @@ public class VideoResponse {
     private Long viewCount;
     private String username;
     private Long userId;
+    private Long likeCount;
 
     public VideoResponse() {}
 
-    public VideoResponse(Video video) {
+    public VideoResponse(Video video, Long likeCount) {
         this.id = video.getId();
         this.title = video.getTitle();
         this.description = video.getDescription();
@@ -27,6 +28,7 @@ public class VideoResponse {
         this.viewCount = video.getViewCount();
         this.username = video.getUser().getUsername();
         this.userId = video.getUser().getId();
+        this.likeCount = likeCount;
     }
 
     // Getters and Setters
@@ -37,6 +39,9 @@ public class VideoResponse {
     public void setId(Long id) {
         this.id = id;
     }
+
+    public Long getLikeCount() { return likeCount; }
+    public void setLikeCount(Long likeCount) { this.likeCount = likeCount; }
 
     public String getTitle() {
         return title;
