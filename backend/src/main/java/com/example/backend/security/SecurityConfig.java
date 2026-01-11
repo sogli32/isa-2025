@@ -33,6 +33,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/comments/*").permitAll() // GET komentari svi
                         // POST komentar treba autentifikaciju
                         .requestMatchers("/api/comments/*").authenticated()
+                        .requestMatchers("/api/videos/*/like").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
