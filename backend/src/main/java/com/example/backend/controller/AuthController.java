@@ -35,6 +35,7 @@ public class AuthController {
 
         String ip = IpUtil.getClientIp(httpRequest);
 
+        // pokušaj da uzme token iz bucket-a
         if (loginAttemptService.isBlocked(ip)) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "Previše pokušaja prijave. Pokušajte ponovo za minut."));
@@ -42,9 +43,9 @@ public class AuthController {
 
         return userService.login(request.getEmail(), request.getPassword())
                 .map(user -> {
+                    // login uspešan -> reset bucket
                     loginAttemptService.loginSucceeded(ip);
 
-                    // generišemo JWT token
                     String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
 
                     return ResponseEntity.ok(Map.of(
@@ -54,11 +55,12 @@ public class AuthController {
                     ));
                 })
                 .orElseGet(() -> {
-                    loginAttemptService.loginFailed(ip);
+                    // login neuspešan -> token bucket automatski smanjuje dostupne tokene
                     return ResponseEntity.status(401)
                             .body(Map.of("error", "Pogrešan email ili lozinka"));
                 });
     }
+
 
     // ===== REGISTER =====
     @PostMapping("/register")
