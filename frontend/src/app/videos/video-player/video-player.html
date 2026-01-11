@@ -30,20 +30,33 @@
 
         <h1 class="video-title">{{ video.title }}</h1>
 
-        <div class="video-stats">
-          <span class="stat">
-            <span class="icon">👁️</span>
-            {{ formatViewCount(video.viewCount) }} pregleda
-          </span>
-          <span class="stat">
-            <span class="icon">📅</span>
-            {{ formatDate(video.createdAt) }}
-          </span>
-          <span class="stat" *ngIf="video.location">
-            <span class="icon">📍</span>
-            {{ video.location }}
-          </span>
-        </div>
+       <div class="video-stats">
+  <span class="stat">
+    <span class="icon">👁️</span>
+    {{ formatViewCount(video.viewCount) }} pregleda
+  </span>
+  <span class="stat">
+    <span class="icon">📅</span>
+    {{ formatDate(video.createdAt) }}
+  </span>
+  <span class="stat" *ngIf="video.location">
+    <span class="icon">📍</span>
+    {{ video.location }}
+  </span>
+
+  <!-- LIKES SECTION -->
+  <span class="stat like-section" *ngIf="video">
+    <button 
+      (click)="likeVideo()"
+      [class.liked]="video.likedByUser"
+      [disabled]="!commentService.authService.isLoggedIn()"
+      class="btn-like">
+      {{ video.likedByUser ? '❤️ Lajkovano' : '🤍 Lajk' }}
+    </button>
+    <span class="like-count">{{ video.likeCount || 0 }}</span>
+  </span>
+</div>
+
 
         <div class="channel-info">
           <div class="avatar">{{ video.username.charAt(0).toUpperCase() }}</div>

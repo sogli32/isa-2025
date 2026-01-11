@@ -23,17 +23,20 @@ export class AuthService {
     }
   }
 login(email: string, password: string) {
-  return this.http.post<User>(`${this.apiUrl}/login`, {
-    email,    // ovde je email, ne username
+  return this.http.post<{ token: string; username: string; role: string }>(`${this.apiUrl}/login`, {
+    email,
     password
   }).pipe(
-    tap(user => {
-      localStorage.setItem('user', JSON.stringify(user));
-      this.user.set(user);
-      console.log('User logged in:', user);
+    tap(res => {
+      localStorage.setItem('token', res.token);
+      const userData = { username: res.username, role: res.role };
+      localStorage.setItem('user', JSON.stringify(userData));
+      this.user.set(userData as User);
+      console.log('User logged in:', res);
     })
   );
 }
+
 
 
   register(username: string, password: string, role: string) {
@@ -44,20 +47,8 @@ login(email: string, password: string) {
     });
   }
 
-  getToken(): string | null {
-  const currentUser = this.user();
-  if (currentUser && (currentUser as any).token) {
-    return (currentUser as any).token; // cast na any ako User model nema token
-  }
-
-  // fallback: proveri localStorage
-  const storedUserStr = localStorage.getItem('user');
-  if (storedUserStr) {
-    const storedUser = JSON.parse(storedUserStr);
-    return storedUser.token ?? null;
-  }
-
-  return null;
+getToken(): string | null {
+  return localStorage.getItem('token');
 }
 
 
