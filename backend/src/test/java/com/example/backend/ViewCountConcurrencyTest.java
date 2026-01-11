@@ -5,12 +5,13 @@ import com.example.backend.model.Video;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.VideoRepository;
 import com.example.backend.services.VideoService;
+import com.example.backend.repository.VerificationTokenRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,14 +19,6 @@ import java.util.concurrent.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Test za demonstriranje konzistentnosti brojača pregleda
- * pri istovremenom pristupu istom videu od strane više korisnika
- * 
- * NAPOMENA: Specifikacija kaže "3.7 (bez transakcije)"
- * Konzistentnost se postiže atomskom UPDATE operacijom na bazi,
- * bez eksplicitne @Transactional anotacije.
- */
 @SpringBootTest
 @ActiveProfiles("test")
 public class ViewCountConcurrencyTest {
@@ -39,11 +32,20 @@ public class ViewCountConcurrencyTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private VerificationTokenRepository verificationTokenRepository;
+    
     private Video testVideo;
     private User testUser;
 
     @BeforeEach
+    @Transactional
     public void setup() {
+       
+        verificationTokenRepository.deleteAll();  
+        videoRepository.deleteAll();              
+        userRepository.deleteAll();              
+        
         // Kreiranje test korisnika
         testUser = new User();
         testUser.setUsername("testuser");
@@ -69,12 +71,11 @@ public class ViewCountConcurrencyTest {
         testVideo = videoRepository.save(testVideo);
     }
 
-    @Test
+    @Test 
     public void testConcurrentViewCountIncrement() throws InterruptedException, ExecutionException {
-        final int THREAD_COUNT = 50; // Broj istovremenih korisnika
+        final int THREAD_COUNT = 50;
         final Long videoId = testVideo.getId();
 
-        // Thread pool za simulaciju konkurentnih zahteva
         ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
         List<Future<Boolean>> futures = new ArrayList<>();
 
@@ -88,7 +89,6 @@ public class ViewCountConcurrencyTest {
 
         long startTime = System.currentTimeMillis();
 
-        // Pokretanje THREAD_COUNT threads koji istovremeno pristupaju istom videu
         for (int i = 0; i < THREAD_COUNT; i++) {
             final int userId = i;
             Future<Boolean> future = executorService.submit(() -> {
@@ -104,7 +104,6 @@ public class ViewCountConcurrencyTest {
             futures.add(future);
         }
 
-        // Čekanje da svi thread-ovi završe
         int successCount = 0;
         for (Future<Boolean> future : futures) {
             if (future.get()) {
@@ -117,7 +116,6 @@ public class ViewCountConcurrencyTest {
 
         long endTime = System.currentTimeMillis();
 
-        // Osvežavanje videa iz baze
         Video updatedVideo = videoRepository.findById(videoId).orElseThrow();
 
         System.out.println();
@@ -130,7 +128,6 @@ public class ViewCountConcurrencyTest {
         System.out.println("Expected view count: " + THREAD_COUNT);
         System.out.println();
 
-        // Provera konzistentnosti
         assertEquals(THREAD_COUNT, updatedVideo.getViewCount(),
                 "View count should be exactly " + THREAD_COUNT + " after " + THREAD_COUNT + " concurrent views");
 
@@ -139,7 +136,7 @@ public class ViewCountConcurrencyTest {
         System.out.println();
     }
 
-    @Test
+    @Test  
     public void testSequentialViewCountIncrement() {
         final int VIEW_COUNT = 10;
         final Long videoId = testVideo.getId();
@@ -167,7 +164,7 @@ public class ViewCountConcurrencyTest {
         System.out.println();
     }
 
-    @Test
+    @Test  
     public void testViewCountIncrementWithNonExistentVideo() {
         System.out.println("╔════════════════════════════════════════════════════════════╗");
         System.out.println("║  NON-EXISTENT VIDEO TEST                                   ║");
@@ -181,9 +178,9 @@ public class ViewCountConcurrencyTest {
         System.out.println();
     }
 
-    @Test
+    @Test  
     public void testHighConcurrency() throws InterruptedException, ExecutionException {
-        final int THREAD_COUNT = 100; // Ekstremna konkurencija
+        final int THREAD_COUNT = 100;
         final Long videoId = testVideo.getId();
 
         ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
@@ -200,7 +197,7 @@ public class ViewCountConcurrencyTest {
             futures.add(executorService.submit(() -> {
                 try {
                     latch.countDown();
-                    latch.await(); // Svi thread-ovi čekaju da startuju u isto vreme
+                    latch.await();
                     videoService.incrementViewCount(videoId);
                     return true;
                 } catch (Exception e) {

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';  // ← DODAJ tap
+import { Observable, tap } from 'rxjs';  
 
 @Injectable({ providedIn: 'root' })
 export class AppService {
@@ -12,11 +12,10 @@ export class AppService {
   login(data: { email: string; password: string }): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/login`, data).pipe(
       tap(response => {
-        // KRITIČNO: Čuvanje tokena u localStorage
         localStorage.setItem('token', response.token);
         localStorage.setItem('username', response.username);
         localStorage.setItem('role', response.role);
-        console.log('✅ Token saved to localStorage:', response.token);
+        console.log('Token saved to localStorage:', response.token);
       })
     );
   }
@@ -25,7 +24,6 @@ export class AppService {
     return this.http.post<any>(`${this.baseUrl}/register`, data);
   }
   
-  // DODAJ ove metode:
   logout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('username');
