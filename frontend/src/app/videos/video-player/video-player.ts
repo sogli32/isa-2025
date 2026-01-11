@@ -18,6 +18,8 @@ export class VideoPlayerComponent implements OnInit {
   error: string = '';
   viewCountIncremented: boolean = false;
 
+  otherVideos: Video[] = [];
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -25,18 +27,19 @@ export class VideoPlayerComponent implements OnInit {
     private cdr: ChangeDetectorRef // DODAJ OVO
   ) {}
 
-  ngOnInit() {
+ngOnInit() {
     const videoId = Number(this.route.snapshot.paramMap.get('id'));
     
     if (!videoId || isNaN(videoId)) {
       this.error = 'Neispravan ID videa';
       this.loading = false;
-      this.cdr.detectChanges(); // DODAJ OVO
+      this.cdr.detectChanges();
       return;
     }
 
     this.loadVideo(videoId);
-  }
+    this.loadOtherVideos(videoId); // učitaj ostale videe
+}
 
   loadVideo(videoId: number) {
     this.loading = true;
@@ -61,6 +64,20 @@ export class VideoPlayerComponent implements OnInit {
     });
   }
 
+  loadOtherVideos(currentVideoId: number) {
+    this.videoService.getAllVideos().subscribe({
+        next: (videos) => {
+            // izbaci trenutni video iz liste
+            this.otherVideos = videos.filter(v => v.id !== currentVideoId);
+            this.cdr.detectChanges();
+        },
+        error: (err) => console.error('Failed to load other videos', err)
+    });
+  }
+  getThumbnailUrl(videoId: number): string {
+  return this.videoService.getThumbnailUrl(videoId);
+}
+
   incrementViewCount(videoId: number) {
     if (!this.viewCountIncremented) {
       this.videoService.incrementViewCount(videoId).subscribe({
@@ -77,6 +94,13 @@ export class VideoPlayerComponent implements OnInit {
         }
       });
     }
+  }
+
+  goToVideo(videoId: number) {
+    this.router.navigate(['/video', videoId]).then(() => {
+        this.loadVideo(videoId);
+        this.loadOtherVideos(videoId);
+    });
   }
 
  goBack() {
