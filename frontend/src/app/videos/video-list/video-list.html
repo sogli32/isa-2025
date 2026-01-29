@@ -15,6 +15,16 @@
     {{ error }}
   </div>
 
+  <div class="tabs">
+  <button [class.active]="activeTab === 'newest'" (click)="setTab('newest')">
+    Najnovije
+  </button>
+  <button [class.active]="activeTab === 'trending'" (click)="setTab('trending')">
+    Trending
+  </button>
+</div>
+
+
   <!-- Video grid -->
   <div *ngIf="!loading && !error" class="video-grid">
     <div 
