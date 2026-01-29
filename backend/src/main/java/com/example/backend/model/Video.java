@@ -39,6 +39,10 @@ public class Video {
     @Column(nullable = false)
     private Long viewCount = 0L;
 
+    @Column(nullable = false)
+    private Double popularityScore = 0.0;
+
+
     public Video() {
         this.createdAt = LocalDateTime.now();
     }
@@ -136,4 +140,13 @@ public class Video {
     public void setViewCount(Long viewCount) {
         this.viewCount = viewCount;
     }
+
+    public Double getPopularityScore() {
+        return popularityScore;
+    }
+
+    public void setPopularityScore(Double popularityScore) {
+        this.popularityScore = popularityScore;
+    }
+
 }
