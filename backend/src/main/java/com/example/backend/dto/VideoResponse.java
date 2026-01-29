@@ -15,6 +15,7 @@ public class VideoResponse {
     private String username;
     private Long userId;
     private Long likeCount;
+    private Double popularityScore;
 
     public VideoResponse() {}
 
@@ -29,6 +30,7 @@ public class VideoResponse {
         this.username = video.getUser().getUsername();
         this.userId = video.getUser().getId();
         this.likeCount = likeCount;
+        this.popularityScore = video.getPopularityScore();
     }
 
     // Getters and Setters
@@ -105,5 +107,9 @@ public class VideoResponse {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public Double getPopularityScore() {
+        return popularityScore;
     }
 }

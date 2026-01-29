@@ -96,4 +96,7 @@ toggleLike(videoId: number) {
 
     return this.http.delete(`${this.apiUrl}/${id}`, { headers });
   }
+  getTrendingVideos(limit: number = 20): Observable<Video[]> {
+  return this.http.get<Video[]>(`${this.apiUrl}/trending?limit=${limit}`);
+}
 }
