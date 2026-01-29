@@ -9,6 +9,10 @@ import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.VideoLikeRepository;
 import com.example.backend.repository.VideoRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,17 +29,20 @@ public class VideoService {
     private final VideoLikeRepository videoLikeRepository;
     private final FileStorageService fileStorageService;
     private final ThumbnailCacheService thumbnailCacheService;
+    private final PopularityCalculationService popularityCalculationService;
 
     public VideoService(VideoRepository videoRepository,
                         UserRepository userRepository,
                         VideoLikeRepository videoLikeRepository,
                         FileStorageService fileStorageService,
-                        ThumbnailCacheService thumbnailCacheService) {
+                        ThumbnailCacheService thumbnailCacheService,
+                        PopularityCalculationService popularityCalculationService) { // ← DODAJ
         this.videoRepository = videoRepository;
         this.userRepository = userRepository;
         this.videoLikeRepository = videoLikeRepository;
         this.fileStorageService = fileStorageService;
         this.thumbnailCacheService = thumbnailCacheService;
+        this.popularityCalculationService = popularityCalculationService; // ← DODAJ
     }
 
     // ================= CREATE VIDEO =================
@@ -106,12 +113,15 @@ public class VideoService {
     }
 
     // ================= VIEW COUNT =================
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Video v SET v.viewCount = v.viewCount + 1 WHERE v.id = :videoId")
     @Transactional
     public void incrementViewCount(Long videoId) {
         int updatedRows = videoRepository.incrementViewCount(videoId);
         if (updatedRows == 0) {
             throw new IllegalArgumentException("Video not found");
         }
+        popularityCalculationService.updateVideoPopularityScore(videoId);
     }
 
     // ================= FILES =================
@@ -145,10 +155,12 @@ public class VideoService {
 
         if (existingLike.isPresent()) {
             videoLikeRepository.delete(existingLike.get());
+            popularityCalculationService.updateVideoPopularityScore(videoId);
             return false; // unlike
         } else {
             VideoLike like = new VideoLike(video, user);
             videoLikeRepository.save(like);
+            popularityCalculationService.updateVideoPopularityScore(videoId);
             return true; // like
         }
     }
@@ -171,5 +183,16 @@ public class VideoService {
         videoLikeRepository.deleteAllByVideo(video);
 
         videoRepository.delete(video);
+    }
+
+    public List<VideoResponse> getTrendingVideos(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return videoRepository.findTrendingVideos(pageable)
+                .stream()
+                .map(video -> {
+                    Long likes = videoLikeRepository.countByVideo(video);
+                    return new VideoResponse(video, likes);
+                })
+                .collect(Collectors.toList());
     }
 }

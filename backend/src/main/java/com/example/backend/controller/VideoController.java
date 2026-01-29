@@ -174,6 +174,12 @@ public class VideoController {
         }
     }
 
+    @GetMapping("/trending")
+    public ResponseEntity<List<VideoResponse>> getTrendingVideos(
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(videoService.getTrendingVideos(limit));
+    }
+
     private String extractEmailFromToken(String authHeader) {
         String token = authHeader.replace("Bearer ", "");
         Claims claims = jwtUtil.validateToken(token).getBody();
