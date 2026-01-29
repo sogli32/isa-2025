@@ -191,3 +191,23 @@
     grid-template-columns: 1fr;
   }
 }
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.tabs button {
+  padding: 8px 16px;
+  border: none;
+  background-color: #eee;
+  cursor: pointer;
+  border-radius: 5px;
+  font-weight: 500;
+}
+
+.tabs button.active {
+  background-color: #ff3b3b;
+  color: white;
+}

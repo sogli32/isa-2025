@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core'; // DODAJ OVO
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { VideoService } from '../../../core/services/video.service';
@@ -16,6 +16,9 @@ export class VideoListComponent implements OnInit {
   loading: boolean = true;
   error: string = '';
 
+  // Aktivni tab: 'newest' ili 'trending'
+  activeTab: 'newest' | 'trending' = 'newest';
+
   constructor(
     private videoService: VideoService,
     private router: Router,
@@ -26,20 +29,33 @@ export class VideoListComponent implements OnInit {
     this.loadVideos();
   }
 
+  // Promena taba
+  setTab(tab: 'newest' | 'trending') {
+    if (this.activeTab !== tab) {
+      this.activeTab = tab;
+      this.loadVideos();
+    }
+  }
+
+  // Učitavanje videa u zavisnosti od taba
   loadVideos() {
     this.loading = true;
     this.error = '';
 
-    this.videoService.getAllVideos().subscribe({
+    const fetch$ = this.activeTab === 'newest'
+      ? this.videoService.getAllVideos()
+      : this.videoService.getTrendingVideos();
+
+    fetch$.subscribe({
       next: (videos) => {
         this.videos = videos;
         this.loading = false;
-        this.cdr.detectChanges(); 
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.error = 'Greška pri učitavanju videa';
         this.loading = false;
-        this.cdr.detectChanges(); // DODAJ OVO
+        this.cdr.detectChanges();
       }
     });
   }
