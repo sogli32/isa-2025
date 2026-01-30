@@ -24,7 +24,10 @@ public class NearbyVideoService {
             throw new IllegalArgumentException("Latitude and longitude must not be null");
         }
 
-        double validatedRadiusKm = geolocationConfig.validateRadius(radiusKm);
+        // Ako je radiusKm null, stavi default npr. 10km
+        double validatedRadiusKm = (radiusKm != null) ? geolocationConfig.validateRadius(radiusKm) : 10.0;
+
+        // Pretvaranje km u metre: 10km -> 10000m
         double radiusMeters = geolocationConfig.kmToMeters(validatedRadiusKm);
 
         return videoRepository.findVideosNearby(latitude, longitude, radiusMeters);
