@@ -1,4 +1,4 @@
-// app.routes.ts - OBRISATI HomeComponent
+// app.routes.ts
 import { Routes } from '@angular/router';
 import { LoginComponent } from './auth/login/login';
 import { RegisterComponent } from './auth/register/register';
@@ -6,9 +6,10 @@ import { ActivateAccountComponent } from './auth/activate-account/activate-accou
 import { VideoListComponent } from './videos/video-list/video-list';
 import { VideoPlayerComponent } from './videos/video-player/video-player';
 import { UploadVideoComponent } from './videos/upload-video/upload-video';
+import { BenchmarkComponent } from './benchmark/benchmark';
 
 export const routes: Routes = [
-  { path: '', component: VideoListComponent }, // OVO JE HOME
+  { path: '', component: VideoListComponent }, // HOME
   { 
     path: 'auth', 
     children: [
@@ -19,5 +20,6 @@ export const routes: Routes = [
   },
   { path: 'upload', component: UploadVideoComponent },
   { path: 'video/:id', component: VideoPlayerComponent },
+  { path: 'benchmark', component: BenchmarkComponent }, // NOVO - Benchmark stranica
   { path: '**', redirectTo: '' }
 ];
