@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { AppService } from '../../app.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { GeolocationService } from '../../../core/services/geolocation.service';
 
 @Component({
   selector: 'app-login',
@@ -20,6 +21,7 @@ export class LoginComponent {
 
   constructor(
     private authService: AuthService,
+    private geolocationService: GeolocationService,
     private cdr: ChangeDetectorRef,
     private router: Router
   ) {}
@@ -38,6 +40,9 @@ export class LoginComponent {
         this.success = `Dobrodošli ${user.username} (${user.role})`;
         this.cdr.detectChanges();
 
+        // [S2] Zatraži lokaciju od korisnika nakon uspešnog logina
+        this.requestUserLocation();
+
         // Redirect na home ili dashboard
         this.router.navigate(['/']);
       },
@@ -50,6 +55,27 @@ export class LoginComponent {
           this.error = 'Došlo je do greške. Pokušajte kasnije.';
         }
         this.cdr.detectChanges();
+      }
+    });
+  }
+
+  /**
+   * [S2] Zatražiti lokaciju od korisnika, u slučaju da odbije, 
+   * koristiti aproksimaciju lokacije sa koje je upućen zahtev.
+   */
+  private requestUserLocation(): void {
+    this.geolocationService.getUserLocation().subscribe({
+      next: (location) => {
+        console.log('Lokacija korisnika:', location);
+        console.log('Izvor:', location.source);
+        console.log('Približna:', location.approximate);
+        
+        // Lokacija je sačuvana u servisu (keširana)
+        // Može se koristiti kasnije za trending videe u blizini
+      },
+      error: (err) => {
+        console.error('Greška pri dobijanju lokacije:', err);
+        // Ne prikazujemo grešku korisniku - lokacija nije kritična
       }
     });
   }
