@@ -1,6 +1,7 @@
 package com.example.backend.services;
 
 import com.example.backend.dto.CreateVideoRequest;
+import com.example.backend.dto.UserLocationResponse;
 import com.example.backend.dto.VideoResponse;
 import com.example.backend.model.User;
 import com.example.backend.model.Video;
@@ -8,6 +9,8 @@ import com.example.backend.model.VideoLike;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.VideoLikeRepository;
 import com.example.backend.repository.VideoRepository;
+import com.example.backend.utils.IpUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,19 +33,22 @@ public class VideoService {
     private final FileStorageService fileStorageService;
     private final ThumbnailCacheService thumbnailCacheService;
     private final PopularityCalculationService popularityCalculationService;
+    private final GeolocationService geolocationService; // DODAJ
 
     public VideoService(VideoRepository videoRepository,
                         UserRepository userRepository,
                         VideoLikeRepository videoLikeRepository,
                         FileStorageService fileStorageService,
                         ThumbnailCacheService thumbnailCacheService,
-                        PopularityCalculationService popularityCalculationService) { // ← DODAJ
+                        PopularityCalculationService popularityCalculationService,
+                        GeolocationService geolocationService) { // DODAJ
         this.videoRepository = videoRepository;
         this.userRepository = userRepository;
         this.videoLikeRepository = videoLikeRepository;
         this.fileStorageService = fileStorageService;
         this.thumbnailCacheService = thumbnailCacheService;
-        this.popularityCalculationService = popularityCalculationService; // ← DODAJ
+        this.popularityCalculationService = popularityCalculationService;
+        this.geolocationService = geolocationService; // DODAJ
     }
 
     // ================= CREATE VIDEO =================
@@ -51,8 +57,8 @@ public class VideoService {
             CreateVideoRequest request,
             MultipartFile videoFile,
             MultipartFile thumbnailFile,
-            String userEmail
-    ) throws IOException {
+            String userEmail,
+            HttpServletRequest httpRequest) throws IOException {
 
         if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
             throw new IllegalArgumentException("Title is required");
@@ -84,7 +90,41 @@ public class VideoService {
                     request.getLocation()
             );
 
+            // ========== NOVO: Postavi koordinate ==========
+
+            // Ako frontend poslao koordinate - koristi ih
+            if (request.hasValidCoordinates()) {
+                video.setLatitude(request.getLatitude());
+                video.setLongitude(request.getLongitude());
+
+                System.out.println("✅ Using coordinates from frontend: " +
+                        request.getLatitude() + ", " + request.getLongitude());
+            }
+            // Ako nije - koristi IP geolokaciju kao fallback
+            else {
+                String clientIp = IpUtil.getClientIp(httpRequest);
+                UserLocationResponse ipLocation = geolocationService.getLocationFromIp(clientIp);
+
+                if (ipLocation.hasValidLocation()) {
+                    video.setLatitude(ipLocation.getLatitude());
+                    video.setLongitude(ipLocation.getLongitude());
+
+                    System.out.println("⚠️ Using IP geolocation fallback: " +
+                            ipLocation.getLatitude() + ", " + ipLocation.getLongitude());
+
+                    // Opciono: Ažuriraj tekstualnu lokaciju ako frontend nije poslao
+                    if (request.getLocation() == null || request.getLocation().trim().isEmpty()) {
+                        String locationText = ipLocation.getCity() + ", " + ipLocation.getCountry();
+                        video.setLocation(locationText);
+                    }
+                } else {
+                    System.out.println("❌ Could not determine location (no coordinates or IP)");
+                }
+            }
+
+            // Sačuvaj u bazu
             video = videoRepository.save(video);
+
             return new VideoResponse(video, 0L);
 
         } catch (IOException e) {

@@ -1,5 +1,6 @@
 package com.example.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -30,10 +31,18 @@ public class Video {
     private LocalDateTime createdAt;
 
     @Column(length = 255)
-    private String location; // opciono - geografska lokacija
+    private String location; // tekstualni opis (grad, država)
+
+    // NOVI: Koordinate za prostorno indeksiranje
+    @Column
+    private Double latitude;
+
+    @Column
+    private Double longitude;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User user;
 
     @Column(nullable = false)
@@ -42,12 +51,11 @@ public class Video {
     @Column(nullable = false)
     private Double popularityScore = 0.0;
 
-
     public Video() {
         this.createdAt = LocalDateTime.now();
     }
 
-    public Video(String title, String description, String tags, String thumbnailPath, 
+    public Video(String title, String description, String tags, String thumbnailPath,
                  String videoPath, User user, String location) {
         this.title = title;
         this.description = description;
@@ -60,7 +68,7 @@ public class Video {
         this.viewCount = 0L;
     }
 
-    // Getters and Setters
+    // Svi postojeći getteri/setteri...
     public Long getId() {
         return id;
     }
@@ -125,6 +133,23 @@ public class Video {
         this.location = location;
     }
 
+    // NOVI getteri/setteri za koordinate
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
     public User getUser() {
         return user;
     }
@@ -148,5 +173,4 @@ public class Video {
     public void setPopularityScore(Double popularityScore) {
         this.popularityScore = popularityScore;
     }
-
 }

@@ -99,4 +99,30 @@ toggleLike(videoId: number) {
   getTrendingVideos(limit: number = 20): Observable<Video[]> {
   return this.http.get<Video[]>(`${this.apiUrl}/trending?limit=${limit}`);
 }
+
+  getVideosNearby(
+  latitude: number,
+  longitude: number,
+  radiusKm?: number
+): Observable<Video[]> {
+  const body = { latitude, longitude };
+  const params: any = {};
+  if (radiusKm) params.radiusKm = radiusKm;
+
+  return this.http.post<Video[]>(`http://localhost:8080/api/geolocation/videos/nearby`, body, { params });
+}
+
+getPopularVideosNearby(
+  latitude: number,
+  longitude: number,
+  radiusKm?: number,
+  limit: number = 20
+): Observable<Video[]> {
+  const body = { latitude, longitude };
+  const params: any = { limit };
+  if (radiusKm) params.radiusKm = radiusKm;
+
+  return this.http.post<Video[]>(`http://localhost:8080/api/geolocation/videos/popular-nearby`, body, { params });
+}
+
 }
