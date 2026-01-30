@@ -1,6 +1,9 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms'; 
 import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { VideoService } from '../../../core/services/video.service';
 import { Video } from '../../../core/models/video.model';
 import { GeolocationService } from '../../../core/services/geolocation.service';
@@ -10,30 +13,41 @@ import { GeolocationService } from '../../../core/services/geolocation.service';
   templateUrl: './video-list.html',
   styleUrls: ['./video-list.css'],
   standalone: true,
-  imports: [CommonModule]
+  imports: [CommonModule, FormsModule] 
 })
 export class VideoListComponent implements OnInit {
   videos: Video[] = [];
   loading: boolean = true;
   error: string = '';
-
-  // Aktivni tab
   activeTab: 'newest' | 'trending' | 'nearby' | 'popularNearby' = 'newest';
+
+  selectedRadius: number = 10; 
+  private radiusUpdateSubject = new Subject<number>();
 
   constructor(
     private videoService: VideoService,
     private router: Router,
     private cdr: ChangeDetectorRef,
     private geoService: GeolocationService
-  ) {}
+  ) {
+   
+    this.radiusUpdateSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(newRadius => {
+      this.selectedRadius = newRadius;
+      this.loadVideos();
+    });
+  }
 
   ngOnInit(): void {
     this.loadVideos();
   }
 
-  /**
-   * Promena taba
-   */
+  onRadiusChange() {
+    this.radiusUpdateSubject.next(this.selectedRadius);
+  }
+
   setTab(tab: 'newest' | 'trending' | 'nearby' | 'popularNearby') {
     if (this.activeTab !== tab) {
       this.activeTab = tab;
@@ -41,10 +55,7 @@ export class VideoListComponent implements OnInit {
     }
   }
 
-  /**
-   * Učitavanje videa u zavisnosti od taba
-   */
-  loadVideos(radiusKm: number = 10) {
+  loadVideos() {
     this.loading = true;
     this.error = '';
 
@@ -64,18 +75,15 @@ export class VideoListComponent implements OnInit {
         break;
 
       case 'nearby':
-        this.loadNearbyVideos(radiusKm, false);
+        this.loadNearbyVideos(this.selectedRadius, false);
         break;
 
       case 'popularNearby':
-        this.loadNearbyVideos(radiusKm, true);
+        this.loadNearbyVideos(this.selectedRadius, true);
         break;
     }
   }
 
-  /**
-   * Učitavanje videa u blizini (obično radius 10 km)
-   */
   private loadNearbyVideos(radiusKm: number, popular: boolean) {
     this.geoService.getUserLocation().subscribe({
       next: (loc) => {
@@ -96,19 +104,13 @@ export class VideoListComponent implements OnInit {
     });
   }
 
-  /**
-   * Obrada uspešno dobijenih videa
-   */
-  private handleVideos(videos: Video[]) {
+  private handleVideos(videos: any[]) {
     this.videos = videos;
     this.loading = false;
     this.error = '';
     this.cdr.detectChanges();
   }
 
-  /**
-   * Obrada greške
-   */
   private handleError(msg: string) {
     this.videos = [];
     this.loading = false;
@@ -130,18 +132,13 @@ export class VideoListComponent implements OnInit {
     this.router.navigate(['/video', videoId]);
   }
 
-  /**
-   * Formatiranje broja pregleda
-   */
+  
   formatViewCount(count: number): string {
     if (count >= 1_000_000) return (count / 1_000_000).toFixed(1) + 'M';
     if (count >= 1_000) return (count / 1_000).toFixed(1) + 'K';
     return count.toString();
   }
 
-  /**
-   * Formatiranje datuma
-   */
   formatDate(dateString: string): string {
     const date = new Date(dateString);
     const now = new Date();
