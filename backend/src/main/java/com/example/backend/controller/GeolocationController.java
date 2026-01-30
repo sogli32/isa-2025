@@ -2,21 +2,21 @@ package com.example.backend.controller;
 
 import com.example.backend.dto.UserLocationRequest;
 import com.example.backend.dto.UserLocationResponse;
+import com.example.backend.dto.VideoResponse;
 import com.example.backend.model.Video;
+import com.example.backend.repository.VideoLikeRepository;
 import com.example.backend.services.GeolocationService;
-import com.example.backend.services.NearbyVideoService;  // DODAJ IMPORT
+import com.example.backend.services.NearbyVideoService;
 import com.example.backend.utils.IpUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * Kontroler za geolokaciju korisnika.
- *
- * [S2] Zatražiti lokaciju od korisnika, u slučaju da odbije,
- * koristiti aproksimaciju lokacije sa koje je upućen zahtev.
+ * Kontroler za geolokaciju korisnika i pretragu videa u blizini.
  */
 @RestController
 @RequestMapping("/api/geolocation")
@@ -24,13 +24,15 @@ import java.util.List;
 public class GeolocationController {
 
     private final GeolocationService geolocationService;
-    private final NearbyVideoService nearbyVideoService;  // DODAJ OVO
+    private final NearbyVideoService nearbyVideoService;
+    private final VideoLikeRepository videoLikeRepository; // Neophodno za mapiranje u VideoResponse
 
-    // IZMENI KONSTRUKTOR
     public GeolocationController(GeolocationService geolocationService,
-                                 NearbyVideoService nearbyVideoService) {
+                                 NearbyVideoService nearbyVideoService,
+                                 VideoLikeRepository videoLikeRepository) {
         this.geolocationService = geolocationService;
         this.nearbyVideoService = nearbyVideoService;
+        this.videoLikeRepository = videoLikeRepository;
     }
 
     @PostMapping("/resolve")
@@ -39,87 +41,82 @@ public class GeolocationController {
             HttpServletRequest request
     ) {
         String clientIp = IpUtil.getClientIp(request);
-
-        UserLocationResponse location = geolocationService.resolveUserLocation(
-                locationRequest, clientIp
-        );
-
+        UserLocationResponse location = geolocationService.resolveUserLocation(locationRequest, clientIp);
         return ResponseEntity.ok(location);
     }
 
     @GetMapping("/ip-location")
     public ResponseEntity<UserLocationResponse> getIpLocation(HttpServletRequest request) {
         String clientIp = IpUtil.getClientIp(request);
-
         UserLocationResponse location = geolocationService.getLocationFromIp(clientIp);
-
         return ResponseEntity.ok(location);
     }
 
     @PostMapping("/videos/nearby")
-    public ResponseEntity<List<Video>> getVideosNearby(
+    public ResponseEntity<List<VideoResponse>> getVideosNearby(
             @RequestBody UserLocationRequest locationRequest,
             @RequestParam(required = false) Double radiusKm,
             HttpServletRequest request
     ) {
-        if (locationRequest == null || !locationRequest.hasValidCoordinates()) {
-            String clientIp = IpUtil.getClientIp(request);
-            UserLocationResponse location = geolocationService.getLocationFromIp(clientIp);
+        UserLocationResponse userLoc = getEffectiveLocation(locationRequest, request);
 
-            if (!location.hasValidLocation()) {
-                return ResponseEntity.badRequest().build();
-            }
-
-            List<Video> videos = nearbyVideoService.findVideosNearby(
-                    location.getLatitude(),
-                    location.getLongitude(),
-                    radiusKm
-            );
-
-            return ResponseEntity.ok(videos);
+        if (!userLoc.hasValidLocation()) {
+            return ResponseEntity.badRequest().build();
         }
 
         List<Video> videos = nearbyVideoService.findVideosNearby(
-                locationRequest.getLatitude(),
-                locationRequest.getLongitude(),
+                userLoc.getLatitude(),
+                userLoc.getLongitude(),
                 radiusKm
         );
 
-        return ResponseEntity.ok(videos);
+        return ResponseEntity.ok(mapToVideoResponse(videos));
     }
 
     @PostMapping("/videos/popular-nearby")
-    public ResponseEntity<List<Video>> getPopularVideosNearby(
+    public ResponseEntity<List<VideoResponse>> getPopularVideosNearby(
             @RequestBody UserLocationRequest locationRequest,
             @RequestParam(required = false) Double radiusKm,
             @RequestParam(required = false, defaultValue = "20") Integer limit,
             HttpServletRequest request
     ) {
-        if (locationRequest == null || !locationRequest.hasValidCoordinates()) {
-            String clientIp = IpUtil.getClientIp(request);
-            UserLocationResponse location = geolocationService.getLocationFromIp(clientIp);
+        UserLocationResponse userLoc = getEffectiveLocation(locationRequest, request);
 
-            if (!location.hasValidLocation()) {
-                return ResponseEntity.badRequest().build();
-            }
-
-            List<Video> videos = nearbyVideoService.findPopularVideosNearby(
-                    location.getLatitude(),
-                    location.getLongitude(),
-                    radiusKm,
-                    limit
-            );
-
-            return ResponseEntity.ok(videos);
+        if (!userLoc.hasValidLocation()) {
+            return ResponseEntity.badRequest().build();
         }
 
         List<Video> videos = nearbyVideoService.findPopularVideosNearby(
-                locationRequest.getLatitude(),
-                locationRequest.getLongitude(),
+                userLoc.getLatitude(),
+                userLoc.getLongitude(),
                 radiusKm,
                 limit
         );
 
-        return ResponseEntity.ok(videos);
+        return ResponseEntity.ok(mapToVideoResponse(videos));
+    }
+
+    /**
+     * Pomoćna metoda za određivanje lokacije (Browser koordinate ili IP fallback).
+     */
+    private UserLocationResponse getEffectiveLocation(UserLocationRequest request, HttpServletRequest httpRequest) {
+        if (request != null && request.hasValidCoordinates()) {
+            return UserLocationResponse.fromBrowser(request.getLatitude(), request.getLongitude());
+        }
+        String clientIp = IpUtil.getClientIp(httpRequest);
+        return geolocationService.getLocationFromIp(clientIp);
+    }
+
+    /**
+     * Pomoćna metoda koja transformiše model Video u DTO VideoResponse.
+     * Ovim se rešava problem sa 'username' i 'likes' na frontendu.
+     */
+    private List<VideoResponse> mapToVideoResponse(List<Video> videos) {
+        return videos.stream()
+                .map(v -> {
+                    Long likesCount = videoLikeRepository.countByVideo(v);
+                    return new VideoResponse(v, likesCount);
+                })
+                .collect(Collectors.toList());
     }
 }
