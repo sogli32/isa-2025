@@ -1,0 +1,190 @@
+<div class="benchmark-container">
+  <h1>📊 Benchmark - Trending Performanse</h1>
+  <p class="subtitle">
+    [S2] Testiranje optimalne mere između performansi i trendinga u realnom vremenu
+  </p>
+
+  <!-- ==================== GEOLOKACIJA SEKCIJA ==================== -->
+  <section class="location-section">
+    <h2>📍 Lokacija korisnika</h2>
+    <p class="section-desc">
+      [S2] Zatražiti lokaciju od korisnika, u slučaju da odbije, koristiti aproksimaciju lokacije sa koje je upućen zahtev.
+    </p>
+
+    <div *ngIf="locationLoading" class="loading-inline">
+      <span class="spinner-small"></span> Dobijanje lokacije...
+    </div>
+
+    <div *ngIf="locationError" class="error-inline">
+      ⚠️ {{ locationError }}
+    </div>
+
+    <div *ngIf="userLocation && !locationLoading" class="location-info">
+      <div class="location-badge" [class.approximate]="userLocation.approximate">
+        {{ getLocationSourceLabel() }}
+      </div>
+
+      <div class="location-details">
+        <div class="detail" *ngIf="userLocation.latitude && userLocation.longitude">
+          <span class="label">Koordinate:</span>
+          <span class="value">{{ userLocation.latitude?.toFixed(4) }}, {{ userLocation.longitude?.toFixed(4) }}</span>
+        </div>
+        <div class="detail" *ngIf="userLocation.city">
+          <span class="label">Grad:</span>
+          <span class="value">{{ userLocation.city }}</span>
+        </div>
+        <div class="detail" *ngIf="userLocation.country">
+          <span class="label">Država:</span>
+          <span class="value">{{ userLocation.country }}</span>
+        </div>
+        <div class="detail">
+          <span class="label">Preciznost:</span>
+          <span class="value" [class.warning]="userLocation.approximate">
+            {{ userLocation.approximate ? '⚠️ Približna (IP)' : '✅ Precizna (GPS)' }}
+          </span>
+        </div>
+      </div>
+
+      <button class="btn-secondary" (click)="refreshLocation()">
+        🔄 Osveži lokaciju
+      </button>
+    </div>
+  </section>
+
+  <!-- ==================== BENCHMARK KONTROLE ==================== -->
+  <section class="benchmark-controls">
+    <h2>⚡ Benchmark parametri</h2>
+
+    <div class="params">
+      <div class="param">
+        <label for="iterations">Broj iteracija:</label>
+        <input 
+          type="number" 
+          id="iterations" 
+          [(ngModel)]="iterations" 
+          min="10" 
+          max="1000"
+        />
+      </div>
+
+      <div class="param">
+        <label for="limit">Trending limit:</label>
+        <input 
+          type="number" 
+          id="limit" 
+          [(ngModel)]="limit" 
+          min="1" 
+          max="100"
+        />
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button 
+        class="btn-primary" 
+        (click)="runBenchmark()" 
+        [disabled]="loading"
+      >
+        {{ loading ? 'Testiram...' : '🚀 Pokreni benchmark' }}
+      </button>
+
+      <button 
+        class="btn-secondary" 
+        (click)="runQuickBenchmark()" 
+        [disabled]="loading"
+      >
+        ⚡ Brzi test (20 iteracija)
+      </button>
+    </div>
+
+    <div *ngIf="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Benchmark u toku... Ovo može potrajati nekoliko sekundi.</p>
+    </div>
+
+    <div *ngIf="error" class="error">
+      {{ error }}
+    </div>
+  </section>
+
+  <!-- ==================== REZULTATI ==================== -->
+  <section *ngIf="report" class="results-section">
+    <h2>📈 Rezultati benchmarka</h2>
+
+    <div class="meta-info">
+      <span>🕐 {{ formatTimestamp(report.timestamp) }}</span>
+      <span>🎬 {{ report.totalVideosInDatabase }} videa u bazi</span>
+      <span>🔄 {{ report.iterationsPerStrategy }} iteracija po strategiji</span>
+    </div>
+
+    <!-- Tabela rezultata -->
+    <div class="table-container">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Strategija</th>
+            <th>Avg (ms)</th>
+            <th>Min (ms)</th>
+            <th>Max (ms)</th>
+            <th>Median (ms)</th>
+            <th>P95 (ms)</th>
+            <th>P99 (ms)</th>
+            <th>StdDev</th>
+            <th>Speedup</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr 
+            *ngFor="let result of report.results" 
+            [class]="getStrategyClass(result.strategyName)"
+          >
+            <td class="strategy-name">
+              <span class="name">{{ result.strategyName }}</span>
+              <span class="badge" *ngIf="result.strategyName === report.optimalStrategy">
+                ⭐ OPTIMAL
+              </span>
+              <span class="realtime-badge" *ngIf="result.isRealTime">
+                🔴 Real-time
+              </span>
+            </td>
+            <td class="avg">{{ result.avgResponseTimeMs }}</td>
+            <td>{{ result.minResponseTimeMs }}</td>
+            <td>{{ result.maxResponseTimeMs }}</td>
+            <td>{{ result.medianResponseTimeMs }}</td>
+            <td>{{ result.p95ResponseTimeMs }}</td>
+            <td>{{ result.p99ResponseTimeMs }}</td>
+            <td>{{ result.standardDeviation }}</td>
+            <td class="speedup">{{ getSpeedup(result) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Opisi strategija -->
+    <div class="strategy-descriptions">
+      <div *ngFor="let result of report.results" class="strategy-desc">
+        <strong>{{ result.strategyName }}:</strong> {{ result.description }}
+      </div>
+    </div>
+
+    <!-- Grafovi -->
+    <div class="charts">
+      <div class="chart-container">
+        <canvas #responseTimeChart></canvas>
+      </div>
+
+      <div class="chart-container">
+        <canvas #comparisonChart></canvas>
+      </div>
+    </div>
+
+    <!-- Preporuka -->
+    <div class="recommendation">
+      <h3>💡 Preporuka</h3>
+      <div class="optimal-strategy">
+        Optimalna strategija: <strong>{{ report.optimalStrategy }}</strong>
+      </div>
+      <p class="recommendation-text">{{ report.recommendation }}</p>
+    </div>
+  </section>
+</div>
