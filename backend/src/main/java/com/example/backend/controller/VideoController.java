@@ -3,8 +3,10 @@ package com.example.backend.controller;
 import com.example.backend.dto.CreateVideoRequest;
 import com.example.backend.dto.VideoResponse;
 import com.example.backend.security.JwtUtil;
+import com.example.backend.services.GeolocationService;
 import com.example.backend.services.VideoService;
 import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -24,10 +26,12 @@ public class VideoController {
 
     private final VideoService videoService;
     private final JwtUtil jwtUtil;
+    private final GeolocationService geolocationService;
 
-    public VideoController(VideoService videoService, JwtUtil jwtUtil) {
+    public VideoController(VideoService videoService, JwtUtil jwtUtil,GeolocationService geolocationService) {
         this.videoService = videoService;
         this.jwtUtil = jwtUtil;
+        this.geolocationService = geolocationService;
     }
 
 
@@ -39,13 +43,24 @@ public class VideoController {
             @RequestParam(value = "location", required = false) String location,
             @RequestParam("videoFile") MultipartFile videoFile,
             @RequestParam("thumbnailFile") MultipartFile thumbnailFile,
-            @RequestHeader("Authorization") String authHeader
+
+            // NOVO: Koordinate (opciono - fallback na IP geolokaciju)
+            @RequestParam(value = "latitude", required = false) Double latitude,
+            @RequestParam(value = "longitude", required = false) Double longitude,
+
+            @RequestHeader("Authorization") String authHeader,
+            HttpServletRequest httpRequest  // DODAJ OVO za IP geolokaciju fallback
     ) {
         try {
             String userEmail = extractEmailFromToken(authHeader);
 
-            CreateVideoRequest request = new CreateVideoRequest(title, description, tags, location);
-            VideoResponse video = videoService.createVideo(request, videoFile, thumbnailFile, userEmail);
+            CreateVideoRequest request = new CreateVideoRequest(
+                    title, description, tags, location, latitude, longitude
+            );
+
+            VideoResponse video = videoService.createVideo(
+                    request, videoFile, thumbnailFile, userEmail, httpRequest
+            );
 
             return ResponseEntity.status(HttpStatus.CREATED).body(video);
 

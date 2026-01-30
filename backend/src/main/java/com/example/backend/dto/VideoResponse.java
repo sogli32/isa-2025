@@ -4,7 +4,7 @@ import com.example.backend.model.Video;
 import java.time.LocalDateTime;
 
 public class VideoResponse {
-    
+
     private Long id;
     private String title;
     private String description;
@@ -16,6 +16,10 @@ public class VideoResponse {
     private Long userId;
     private Long likeCount;
     private Double popularityScore;
+
+    // NOVO: Koordinate
+    private Double latitude;
+    private Double longitude;
 
     public VideoResponse() {}
 
@@ -31,9 +35,13 @@ public class VideoResponse {
         this.userId = video.getUser().getId();
         this.likeCount = likeCount;
         this.popularityScore = video.getPopularityScore();
+
+        // NOVO: Popuni koordinate
+        this.latitude = video.getLatitude();
+        this.longitude = video.getLongitude();
     }
 
-    // Getters and Setters
+    // Svi postojeći getteri/setteri...
     public Long getId() {
         return id;
     }
@@ -42,8 +50,13 @@ public class VideoResponse {
         this.id = id;
     }
 
-    public Long getLikeCount() { return likeCount; }
-    public void setLikeCount(Long likeCount) { this.likeCount = likeCount; }
+    public Long getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(Long likeCount) {
+        this.likeCount = likeCount;
+    }
 
     public String getTitle() {
         return title;
@@ -111,5 +124,26 @@ public class VideoResponse {
 
     public Double getPopularityScore() {
         return popularityScore;
+    }
+
+    public void setPopularityScore(Double popularityScore) {
+        this.popularityScore = popularityScore;
+    }
+
+    // NOVI getteri/setteri za koordinate
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
     }
 }
