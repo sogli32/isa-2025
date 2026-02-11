@@ -7,6 +7,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { VideoService } from '../../../core/services/video.service';
 import { Video } from '../../../core/models/video.model';
 import { GeolocationService } from '../../../core/services/geolocation.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { EtlVideo } from '../../../core/models/video.model';
 
 @Component({
   selector: 'app-video-list',
@@ -19,16 +21,24 @@ export class VideoListComponent implements OnInit {
   videos: Video[] = [];
   loading: boolean = true;
   error: string = '';
-  activeTab: 'newest' | 'trending' | 'nearby' | 'popularNearby' = 'newest';
+  activeTab: 'newest' | 'trending' | 'nearby' | 'popularNearby' | 'etlPopular' = 'newest';
 
-  selectedRadius: number = 10; 
+
+  selectedRadius: number = 10;
   private radiusUpdateSubject = new Subject<number>();
+
+  // ETL popularni videi
+  etlPopularVideos: EtlVideo[] = [];
+
+  etlExecutedAt: string = '';
+  etlLoading: boolean = false;
 
   constructor(
     private videoService: VideoService,
     private router: Router,
     private cdr: ChangeDetectorRef,
-    private geoService: GeolocationService
+    private geoService: GeolocationService,
+    public authService: AuthService
   ) {
    
     this.radiusUpdateSubject.pipe(
@@ -48,7 +58,8 @@ export class VideoListComponent implements OnInit {
     this.radiusUpdateSubject.next(this.selectedRadius);
   }
 
-  setTab(tab: 'newest' | 'trending' | 'nearby' | 'popularNearby') {
+  setTab(tab: 'newest' | 'trending' | 'nearby' | 'popularNearby' | 'etlPopular')
+ {
     if (this.activeTab !== tab) {
       this.activeTab = tab;
       this.loadVideos();
@@ -77,9 +88,13 @@ export class VideoListComponent implements OnInit {
       case 'nearby':
         this.loadNearbyVideos(this.selectedRadius, false);
         break;
-
+        
       case 'popularNearby':
         this.loadNearbyVideos(this.selectedRadius, true);
+        break;
+
+      case 'etlPopular':
+        this.loadEtlPopularVideos();
         break;
     }
   }
@@ -101,6 +116,46 @@ export class VideoListComponent implements OnInit {
         }
       },
       error: () => this.handleError('Greška pri dobijanju lokacije.')
+    });
+  }
+
+ loadEtlPopularVideos() {
+  if (!this.authService.isLoggedIn()) {
+    this.handleError('Morate biti ulogovani.');
+    return;
+  }
+
+  this.loading = true;
+  this.error = '';
+
+  this.videoService.getEtlPopularVideos().subscribe({
+    next: (data) => {
+      this.etlPopularVideos = data.videos || [];
+      this.etlExecutedAt = data.executedAt || '';
+
+      // BITNO: više NE mapiramo u Video[]
+      this.videos = [];
+
+      this.loading = false;
+      this.cdr.detectChanges();
+    },
+    error: () => {
+      this.handleError('Greška pri učitavanju ETL popularnih videa');
+    }
+  });
+}
+
+
+  formatEtlDate(dateString: string): string {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('sr-RS', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }) + ' u ' + date.toLocaleTimeString('sr-RS', {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   }
 

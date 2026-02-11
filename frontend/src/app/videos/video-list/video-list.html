@@ -30,23 +30,52 @@
   </div>
 
   <div class="tabs">
-  <button [class.active]="activeTab === 'newest'" (click)="setTab('newest')">
-    Najnovije
-  </button>
-  <button [class.active]="activeTab === 'trending'" (click)="setTab('trending')">
-    Trending
-  </button>
-  <button [class.active]="activeTab === 'nearby'" (click)="setTab('nearby')">
-    U blizini
-  </button>
-  <button [class.active]="activeTab === 'popularNearby'" (click)="setTab('popularNearby')">
-    Popular u blizini
-  </button>
+  <button [class.active]="activeTab === 'newest'" (click)="setTab('newest')">Najnovije</button>
+  <button [class.active]="activeTab === 'trending'" (click)="setTab('trending')">Trending</button>
+  <button [class.active]="activeTab === 'nearby'" (click)="setTab('nearby')">U blizini</button>
+  <button [class.active]="activeTab === 'popularNearby'" (click)="setTab('popularNearby')">Popular u blizini</button>
+<button [class.active]="activeTab === 'etlPopular'" (click)="setTab('etlPopular')">
+  Popular (7 dana)
+</button>
+
 </div>
 
+  <!-- ETL Popular videi - prikaz kada je tab aktivan -->
+  <div *ngIf="activeTab === 'etlPopular' && !loading && !error && etlPopularVideos.length > 0" class="etl-popular-section">
+    <p class="etl-subtitle">Poslednje izvršavanje ETL-a: {{ formatEtlDate(etlExecutedAt) }}</p>
+    <div class="etl-video-grid">
+      <div
+        *ngFor="let entry of etlPopularVideos; let i = index"
+        class="etl-video-card"
+        (click)="openVideo(entry.videoId)"
+      >
+        <div class="etl-rank">#{{ i + 1 }}</div>
+        <div class="etl-thumbnail-wrapper">
+          <img
+            [src]="getThumbnailUrl(entry.videoId)"
+            [alt]="entry.title"
+            class="thumbnail"
+          />
+        </div>
+        <div class="etl-video-info">
+          <h3 class="video-title">{{ entry.title }}</h3>
+          <p class="video-meta">
+            <span class="username">{{ entry.username }}</span>
+          </p>
+          <p class="etl-score">Popularity score: {{ entry.popularityScore | number:'1.0-0' }}</p>
+          <p class="etl-views">Pregleda: {{ formatViewCount(entry.viewCount) }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- Video grid -->
-  <div *ngIf="!loading && !error" class="video-grid">
+  <div *ngIf="activeTab === 'etlPopular' && !loading && !error && etlPopularVideos.length === 0" class="empty-state">
+    <p>📹 Nema popularnih videa iz ETL-a</p>
+    <p class="empty-subtitle">ETL pipeline još nije pokrenut ili nema dovoljno pregleda.</p>
+  </div>
+
+  <!-- Video grid (nije za ETL tab) -->
+  <div *ngIf="!loading && !error && activeTab !== 'etlPopular'" class="video-grid">
     <div 
       *ngFor="let video of videos" 
       class="video-card"
@@ -59,10 +88,15 @@
     class="thumbnail"
   />
 
-  <div class="view-count-badge">
-    👁️ {{ formatViewCount(video.viewCount) }}
+  <!-- Zakazani video badge -->
+    <div *ngIf="video.scheduledAt && !video.available" class="scheduled-badge">
+      📅 Zakazano za {{ formatScheduledDate(video.scheduledAt) }}
+    </div>
+
+    <div class="view-count-badge" *ngIf="!video.scheduledAt || video.available">
+      👁️ {{ formatViewCount(video.viewCount) }}
+    </div>
   </div>
-</div>
 
 
       <div class="video-info">
@@ -84,8 +118,8 @@
     </div>
   </div>
 
-  <!-- Empty state -->
-  <div *ngIf="!loading && !error && videos.length === 0" class="empty-state">
+  <!-- Empty state (nije za ETL tab) -->
+  <div *ngIf="!loading && !error && videos.length === 0 && activeTab !== 'etlPopular'" class="empty-state">
     <p>📹 Nema videa za prikaz</p>
     <p class="empty-subtitle">Budite prvi koji će postaviti video!</p>
   </div>
