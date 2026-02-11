@@ -140,6 +140,7 @@ public class VideoController {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.parseMediaType("video/mp4"));
             headers.setContentLength(videoData.length);
+            headers.set("Accept-Ranges", "bytes");
 
             return new ResponseEntity<>(videoData, headers, HttpStatus.OK);
 

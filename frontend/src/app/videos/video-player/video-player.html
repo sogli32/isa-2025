@@ -14,23 +14,8 @@
     </div>
   </div>
 
-  <!-- Countdown za zakazani video koji jos nije dostupan -->
-  <div *ngIf="isWaitingForSchedule && video && !loading && !error" class="countdown-container">
-    <div class="countdown-box">
-      <div class="countdown-icon">&#9201;</div>
-      <h2>{{ video.title }}</h2>
-      <p class="countdown-label">Video je zakazan za</p>
-      <p class="countdown-scheduled-date">{{ formatScheduledDate(video.scheduledAt!) }}</p>
-      <div class="countdown-timer">
-        <span class="countdown-value">{{ countdownText }}</span>
-      </div>
-      <p class="countdown-hint">Video ce automatski poceti sa reprodukcijom kada dodje zakazano vreme.</p>
-      <button (click)="goBack()" class="btn-back">Nazad na pocetnu</button>
-    </div>
-  </div>
-
   <!-- Video + sidebar -->
-  <div *ngIf="video && !loading && !error && !isWaitingForSchedule" class="player-wrapper flex-container">
+  <div *ngIf="video && !loading && !error" class="player-wrapper flex-container">
 
     <!-- LEVA KOLONA: video + detalji -->
     <div class="main-video">
@@ -41,15 +26,16 @@
 
       <div class="video-wrapper">
         <video
-          #videoElement
-          [src]="videoStreamUrl"
-          controls
-          class="video-element"
-          [attr.autoplay]="!isScheduledStream ? '' : null"
-          (loadedmetadata)="onVideoLoaded()"
-          (seeked)="onVideoSeeked()">
-          Vas browser ne podrzava video reprodukciju.
-        </video>
+  #videoElement
+  [src]="videoStreamUrl"
+  controls
+  muted
+  preload="auto"
+  class="video-element"
+  (loadedmetadata)="onVideoLoaded()"
+  (seeked)="onVideoSeeked()">
+  Vaš browser ne podržava video reprodukciju.
+</video>
 
         <!-- Overlay za zavrsen video -->
         <div *ngIf="videoEnded && isScheduledStream" class="video-ended-overlay">

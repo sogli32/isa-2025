@@ -35,6 +35,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
   private countdownInterval: any = null;
   countdownText: string = '';
   isWaitingForSchedule: boolean = false;
+  private isSyncingPosition: boolean = false;
 
   @ViewChild('videoElement') videoElementRef!: ElementRef<HTMLVideoElement>;
 
@@ -121,25 +122,21 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
     this.isScheduledStream = false;
     this.videoEnded = false;
     this.isWaitingForSchedule = false;
+    this.isSyncingPosition = false;
     this.cdr.detectChanges();
 
     this.videoService.getVideoById(videoId).subscribe({
       next: (video) => {
         this.video = video;
 
-        // Proveri da li je zakazan video koji jos nije dostupan
-        if (video.scheduledAt && !video.available) {
-          this.isWaitingForSchedule = true;
-          this.loading = false;
-          this.startCountdown(video.scheduledAt);
-          this.cdr.detectChanges();
-          return;
-        }
-
         // Ako je zakazan i dostupan - simulirani streaming
-        if (video.scheduledAt && video.available && video.streamOffsetSeconds !== undefined && video.streamOffsetSeconds !== null) {
+        if (video.scheduledAt && video.available) {
           this.isScheduledStream = true;
-          this.streamOffsetSeconds = video.streamOffsetSeconds;
+          // Racunaj offset lokalno
+          const now = new Date();
+          const scheduled = new Date(video.scheduledAt);
+          this.streamOffsetSeconds = Math.max(0, Math.floor((now.getTime() - scheduled.getTime()) / 1000));
+          console.log('Stream detektovan. scheduledAt:', video.scheduledAt, 'lokalni offset:', this.streamOffsetSeconds, 'sekundi');
         }
 
         this.videoStreamUrl = this.videoService.getVideoStreamUrl(videoId);
@@ -156,82 +153,121 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
       }
     });
   }
+onVideoLoaded() {
+    // Ako nije stream, samo pusti normalno
+    if (!this.isScheduledStream || !this.video || !this.videoElementRef) {
+      this.videoElementRef?.nativeElement.play().catch(() => {});
+      return;
+    }
 
-  onVideoLoaded() {
-    if (this.isScheduledStream && this.videoElementRef) {
-      const videoEl = this.videoElementRef.nativeElement;
+    const videoEl = this.videoElementRef.nativeElement;
 
-      // Ponovo izracunaj offset sa servera za tacnost
-      if (this.video) {
-        this.videoService.getStreamInfo(this.video.id).subscribe({
-          next: (info) => {
-            if (info.streamOffsetSeconds !== undefined && info.streamOffsetSeconds !== null) {
-              this.streamOffsetSeconds = info.streamOffsetSeconds;
+    console.log('=== STREAM LOADED ===');
+    console.log('scheduledAt:', this.video.scheduledAt);
+    console.log('duration:', videoEl.duration);
+    console.log('readyState:', videoEl.readyState);
 
-              if (this.streamOffsetSeconds >= videoEl.duration) {
-                this.videoEnded = true;
-                videoEl.currentTime = videoEl.duration;
-                videoEl.pause();
-                this.cdr.detectChanges();
-                return;
-              }
+    // Sacekaj da video bude zaista spreman za seek
+    const applyOffset = () => {
+      const now = new Date();
+      const scheduled = new Date(this.video!.scheduledAt!);
+      const offsetSeconds = Math.floor((now.getTime() - scheduled.getTime()) / 1000);
 
-              videoEl.currentTime = this.streamOffsetSeconds;
-              videoEl.play();
-              this.startSeekSync(videoEl);
-            }
-          }
-        });
+      console.log('Primenjujem offset:', offsetSeconds, 'sek, duration:', videoEl.duration);
+
+      this.isSyncingPosition = true;
+
+      if (offsetSeconds < 0) {
+        videoEl.currentTime = 0;
+      } else if (videoEl.duration && offsetSeconds >= videoEl.duration) {
+        this.videoEnded = true;
+        videoEl.currentTime = videoEl.duration;
+        this.cdr.detectChanges();
+      } else {
+        videoEl.currentTime = offsetSeconds;
       }
+
+      // Kada browser zavrsi seek, pokreni play
+      const onSeekedOnce = () => {
+        videoEl.removeEventListener('seeked', onSeekedOnce);
+        this.isSyncingPosition = false;
+        console.log('Seek zavrsen, currentTime:', videoEl.currentTime);
+
+        if (!this.videoEnded) {
+          videoEl.play().catch(err => {
+            console.warn('Autoplay blokiran:', err);
+          });
+        }
+      };
+      videoEl.addEventListener('seeked', onSeekedOnce);
+
+      // Fallback ako seeked ne puca (npr. offset = 0)
+      setTimeout(() => {
+        this.isSyncingPosition = false;
+      }, 500);
+
+      this.startSeekSync(videoEl);
+    };
+
+    // Ako video vec ima dovoljno podataka, primeni odmah
+    if (videoEl.readyState >= 2 && videoEl.duration > 0) {
+      applyOffset();
+    } else {
+      // Sacekaj canplay event
+      const onCanPlay = () => {
+        videoEl.removeEventListener('canplay', onCanPlay);
+        applyOffset();
+      };
+      videoEl.addEventListener('canplay', onCanPlay);
     }
   }
 
   private startSeekSync(videoEl: HTMLVideoElement) {
-    // Svakih 5 sekundi, proveri da li se korisnik vratio nazad - ako jeste, vrati ga na pravu poziciju
+    if (this.seekSyncInterval) clearInterval(this.seekSyncInterval);
+
     this.seekSyncInterval = setInterval(() => {
-      if (!this.video || !this.video.scheduledAt) return;
+      if (!this.video || !this.video.scheduledAt || this.videoEnded || this.isSyncingPosition) return;
 
-      this.videoService.getStreamInfo(this.video.id).subscribe({
-        next: (info) => {
-          if (info.streamOffsetSeconds !== undefined && info.streamOffsetSeconds !== null) {
-            const serverOffset = info.streamOffsetSeconds;
+      const now = new Date();
+      const scheduled = new Date(this.video.scheduledAt!);
+      const livePosition = Math.floor((now.getTime() - scheduled.getTime()) / 1000);
 
-            if (serverOffset >= videoEl.duration) {
-              this.videoEnded = true;
-              videoEl.pause();
-              videoEl.currentTime = videoEl.duration;
-              clearInterval(this.seekSyncInterval);
-              this.cdr.detectChanges();
-              return;
-            }
+      // Provera kraja
+      if (livePosition >= videoEl.duration) {
+        this.videoEnded = true;
+        videoEl.pause();
+        clearInterval(this.seekSyncInterval);
+        this.cdr.detectChanges();
+        return;
+      }
 
-            // Ako korisnik pokusa da premota, vrati ga na pravu poziciju
-            const drift = Math.abs(videoEl.currentTime - serverOffset);
-            if (drift > 3) {
-              videoEl.currentTime = serverOffset;
-            }
-          }
-        }
-      });
-    }, 5000);
+      // Samo spreci da currentTime ode UNAPRED od live pozicije
+      // Unazad je dozvoljeno - korisnik moze premotavati
+      if (videoEl.currentTime > livePosition + 2) {
+        this.isSyncingPosition = true;
+        videoEl.currentTime = livePosition;
+        setTimeout(() => { this.isSyncingPosition = false; }, 200);
+      }
+    }, 2000);
   }
 
   onVideoSeeked() {
-    if (!this.isScheduledStream || !this.video || !this.videoElementRef) return;
-    const videoEl = this.videoElementRef.nativeElement;
+    // Ako je programski seek (iz onVideoLoaded ili startSeekSync), ignorisi
+    if (this.isSyncingPosition) return;
+    if (!this.isScheduledStream || !this.video) return;
 
-    // Spreci korisnika da premota zakazani video
-    this.videoService.getStreamInfo(this.video.id).subscribe({
-      next: (info) => {
-        if (info.streamOffsetSeconds !== undefined && info.streamOffsetSeconds !== null) {
-          const serverOffset = info.streamOffsetSeconds;
-          const drift = Math.abs(videoEl.currentTime - serverOffset);
-          if (drift > 2) {
-            videoEl.currentTime = serverOffset;
-          }
-        }
-      }
-    });
+    const videoEl = this.videoElementRef.nativeElement;
+    const now = new Date();
+    const scheduled = new Date(this.video.scheduledAt!);
+    const livePosition = Math.floor((now.getTime() - scheduled.getTime()) / 1000);
+
+    // Dozvoli premotavanje UNAZAD (ali ne unapred od live pozicije)
+    if (videoEl.currentTime > livePosition + 2) {
+      this.isSyncingPosition = true;
+      videoEl.currentTime = livePosition;
+      setTimeout(() => { this.isSyncingPosition = false; }, 200);
+    }
+    // Premotavanje unazad je dozvoljeno - ne radi nista
   }
 
   private startCountdown(scheduledAtStr: string) {
