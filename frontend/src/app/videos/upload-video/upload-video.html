@@ -76,6 +76,43 @@
       </div>
     </div>
 
+    <!-- Zakazano prikazivanje -->
+    <div class="form-group schedule-section">
+      <div class="schedule-toggle">
+        <label class="toggle-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="isScheduled"
+            [disabled]="uploading"
+          />
+          <span class="toggle-text">Zakazano prikazivanje</span>
+        </label>
+      </div>
+
+      <div *ngIf="isScheduled" class="schedule-inputs">
+        <div class="schedule-row">
+          <div class="schedule-field">
+            <label>Datum</label>
+            <input
+              type="date"
+              [(ngModel)]="scheduledDate"
+              [min]="minDate"
+              [disabled]="uploading"
+            />
+          </div>
+          <div class="schedule-field">
+            <label>Vreme</label>
+            <input
+              type="time"
+              [(ngModel)]="scheduledTime"
+              [disabled]="uploading"
+            />
+          </div>
+        </div>
+        <p class="schedule-hint">Video nece biti dostupan drugima do zakazanog datuma i vremena. U tom trenutku svi korisnici ce ga gledati sinhronizovano.</p>
+      </div>
+    </div>
+
     <!-- Progress bar -->
     <div class="progress-container" *ngIf="uploading">
       <div class="progress-bar">

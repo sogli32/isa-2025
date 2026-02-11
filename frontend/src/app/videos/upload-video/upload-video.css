@@ -212,6 +212,82 @@
   text-align: center;
 }
 
+/* Schedule section */
+.schedule-section {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 15px;
+  background-color: #fafafa;
+}
+
+.schedule-toggle {
+  margin-bottom: 0;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #555;
+  font-size: 14px;
+}
+
+.toggle-label input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.toggle-text {
+  user-select: none;
+}
+
+.schedule-inputs {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.schedule-row {
+  display: flex;
+  gap: 15px;
+}
+
+.schedule-field {
+  flex: 1;
+}
+
+.schedule-field label {
+  display: block;
+  margin-bottom: 6px;
+  color: #555;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.schedule-field input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+.schedule-field input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.schedule-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #888;
+  line-height: 1.4;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .upload-card {
@@ -219,6 +295,10 @@
   }
 
   .button-group {
+    flex-direction: column;
+  }
+
+  .schedule-row {
     flex-direction: column;
   }
 }

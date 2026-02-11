@@ -53,15 +53,17 @@
       (click)="openVideo(video.id)"
     >
       <div class="thumbnail-wrapper">
-        <img 
-          [src]="getThumbnailUrl(video.id)" 
-          [alt]="video.title"
-          class="thumbnail"
-        />
-        <div class="view-count-badge">
-          👁️ {{ formatViewCount(video.viewCount) }}
-        </div>
-      </div>
+  <img 
+    [src]="getThumbnailUrl(video.id)" 
+    [alt]="video.title"
+    class="thumbnail"
+  />
+
+  <div class="view-count-badge">
+    👁️ {{ formatViewCount(video.viewCount) }}
+  </div>
+</div>
+
 
       <div class="video-info">
         <h3 class="video-title">{{ video.title }}</h3>
