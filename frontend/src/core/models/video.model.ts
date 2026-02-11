@@ -34,3 +34,12 @@ export interface StreamInfo {
   streamOffsetSeconds?: number;
   secondsUntilAvailable?: number;
 }
+
+export interface EtlVideo {
+  videoId: number;
+  title: string;
+  username: string;
+  viewCount: number;
+  popularityScore?: number; // optional
+}
+

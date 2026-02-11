@@ -120,6 +120,12 @@ getStreamInfo(id: number): Observable<StreamInfo> {
   return this.http.get<StreamInfo>(`${this.apiUrl}/${id}/stream-info`);
 }
 
+getEtlPopularVideos(): Observable<any> {
+  const token = localStorage.getItem('token');
+  const headers = new HttpHeaders({ 'Authorization': `Bearer ${token}` });
+  return this.http.get<any>('http://localhost:8080/api/etl/popular', { headers });
+}
+
 getPopularVideosNearby(
   latitude: number,
   longitude: number,

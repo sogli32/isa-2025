@@ -6,16 +6,16 @@ import com.example.backend.dto.VideoResponse;
 import com.example.backend.model.User;
 import com.example.backend.model.Video;
 import com.example.backend.model.VideoLike;
+import com.example.backend.model.VideoView;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.VideoLikeRepository;
 import com.example.backend.repository.VideoRepository;
+import com.example.backend.repository.VideoViewRepository;
 import com.example.backend.utils.IpUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -34,25 +34,28 @@ public class VideoService {
     private final VideoRepository videoRepository;
     private final UserRepository userRepository;
     private final VideoLikeRepository videoLikeRepository;
+    private final VideoViewRepository videoViewRepository;
     private final FileStorageService fileStorageService;
     private final ThumbnailCacheService thumbnailCacheService;
     private final PopularityCalculationService popularityCalculationService;
-    private final GeolocationService geolocationService; // DODAJ
+    private final GeolocationService geolocationService;
 
     public VideoService(VideoRepository videoRepository,
                         UserRepository userRepository,
                         VideoLikeRepository videoLikeRepository,
+                        VideoViewRepository videoViewRepository,
                         FileStorageService fileStorageService,
                         ThumbnailCacheService thumbnailCacheService,
                         PopularityCalculationService popularityCalculationService,
-                        GeolocationService geolocationService) { // DODAJ
+                        GeolocationService geolocationService) {
         this.videoRepository = videoRepository;
         this.userRepository = userRepository;
         this.videoLikeRepository = videoLikeRepository;
+        this.videoViewRepository = videoViewRepository;
         this.fileStorageService = fileStorageService;
         this.thumbnailCacheService = thumbnailCacheService;
         this.popularityCalculationService = popularityCalculationService;
-        this.geolocationService = geolocationService; // DODAJ
+        this.geolocationService = geolocationService;
     }
 
     // ================= CREATE VIDEO =================
@@ -191,14 +194,18 @@ public class VideoService {
     }
 
     // ================= VIEW COUNT =================
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("UPDATE Video v SET v.viewCount = v.viewCount + 1 WHERE v.id = :videoId")
     @Transactional
     public void incrementViewCount(Long videoId) {
         int updatedRows = videoRepository.incrementViewCount(videoId);
         if (updatedRows == 0) {
             throw new IllegalArgumentException("Video not found");
         }
+
+        // Loguj pojedinacni pregled za ETL pipeline
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new IllegalArgumentException("Video not found"));
+        videoViewRepository.save(new VideoView(video));
+
         popularityCalculationService.updateVideoPopularityScore(videoId);
     }
 
