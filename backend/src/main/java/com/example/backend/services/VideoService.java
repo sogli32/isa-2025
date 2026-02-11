@@ -20,7 +20,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -90,6 +94,11 @@ public class VideoService {
                     request.getLocation()
             );
 
+            // Postavi zakazano vreme ako postoji
+            if (request.getScheduledAt() != null) {
+                video.setScheduledAt(request.getScheduledAt());
+            }
+
             // ========== NOVO: Postavi koordinate ==========
 
             // Ako frontend poslao koordinate - koristi ih
@@ -138,6 +147,7 @@ public class VideoService {
     public List<VideoResponse> getAllVideos() {
         return videoRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
+                .filter(Video::isAvailable)
                 .map(video -> {
                     Long likes = videoLikeRepository.countByVideo(video);
                     return new VideoResponse(video, likes);
@@ -150,6 +160,34 @@ public class VideoService {
                 .orElseThrow(() -> new IllegalArgumentException("Video not found"));
         Long likes = videoLikeRepository.countByVideo(video);
         return new VideoResponse(video, likes);
+    }
+
+    // ================= SCHEDULED VIDEO HELPERS =================
+    public boolean isVideoAvailable(Long videoId) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new IllegalArgumentException("Video not found"));
+        return video.isAvailable();
+    }
+
+    public Map<String, Object> getStreamInfo(Long videoId) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new IllegalArgumentException("Video not found"));
+
+        Map<String, Object> info = new HashMap<>();
+        info.put("videoId", videoId);
+        info.put("scheduled", video.isScheduled());
+        info.put("available", video.isAvailable());
+        info.put("scheduledAt", video.getScheduledAt());
+
+        if (video.isScheduled() && video.isAvailable()) {
+            long offsetSeconds = Duration.between(video.getScheduledAt(), LocalDateTime.now()).getSeconds();
+            info.put("streamOffsetSeconds", Math.max(0, offsetSeconds));
+        } else if (video.isScheduled() && !video.isAvailable()) {
+            long secondsUntilAvailable = Duration.between(LocalDateTime.now(), video.getScheduledAt()).getSeconds();
+            info.put("secondsUntilAvailable", Math.max(0, secondsUntilAvailable));
+        }
+
+        return info;
     }
 
     // ================= VIEW COUNT =================
@@ -229,6 +267,7 @@ public class VideoService {
         Pageable pageable = PageRequest.of(0, limit);
         return videoRepository.findTrendingVideos(pageable)
                 .stream()
+                .filter(Video::isAvailable)
                 .map(video -> {
                     Long likes = videoLikeRepository.countByVideo(video);
                     return new VideoResponse(video, likes);

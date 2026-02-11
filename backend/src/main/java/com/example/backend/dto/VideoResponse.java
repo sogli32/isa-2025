@@ -21,6 +21,11 @@ public class VideoResponse {
     private Double latitude;
     private Double longitude;
 
+    // Zakazano prikazivanje
+    private LocalDateTime scheduledAt;
+    private boolean available;
+    private Long streamOffsetSeconds;
+
     public VideoResponse() {}
 
     public VideoResponse(Video video, Long likeCount) {
@@ -39,6 +44,17 @@ public class VideoResponse {
         // NOVO: Popuni koordinate
         this.latitude = video.getLatitude();
         this.longitude = video.getLongitude();
+
+        // Zakazano prikazivanje
+        this.scheduledAt = video.getScheduledAt();
+        this.available = video.isAvailable();
+
+        if (video.isScheduled() && video.isAvailable()) {
+            long offset = java.time.Duration.between(video.getScheduledAt(), LocalDateTime.now()).getSeconds();
+            this.streamOffsetSeconds = Math.max(0, offset);
+        } else {
+            this.streamOffsetSeconds = null;
+        }
     }
 
     // Svi postojeći getteri/setteri...
@@ -145,5 +161,29 @@ public class VideoResponse {
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    public LocalDateTime getScheduledAt() {
+        return scheduledAt;
+    }
+
+    public void setScheduledAt(LocalDateTime scheduledAt) {
+        this.scheduledAt = scheduledAt;
+    }
+
+    public boolean isAvailable() {
+        return available;
+    }
+
+    public void setAvailable(boolean available) {
+        this.available = available;
+    }
+
+    public Long getStreamOffsetSeconds() {
+        return streamOffsetSeconds;
+    }
+
+    public void setStreamOffsetSeconds(Long streamOffsetSeconds) {
+        this.streamOffsetSeconds = streamOffsetSeconds;
     }
 }

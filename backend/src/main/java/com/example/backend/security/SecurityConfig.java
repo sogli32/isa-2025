@@ -28,6 +28,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/videos").permitAll()
                         .requestMatchers("/api/videos/*/thumbnail").permitAll()
                         .requestMatchers("/api/videos/*/stream").permitAll()
+                        .requestMatchers("/api/videos/*/stream-info").permitAll()
                         .requestMatchers("/api/videos/*").permitAll()
                         .requestMatchers("/api/videos/*/view").permitAll()
                         .requestMatchers("/api/comments/*").permitAll() // GET komentari svi
