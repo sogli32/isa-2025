@@ -2,6 +2,7 @@ package com.example.backend.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,6 +23,8 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // Dozvoli OPTIONS preflight za sve endpointe (CORS)
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // javni endpointi
                         .requestMatchers("/hello").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
@@ -35,6 +38,7 @@ public class SecurityConfig {
                         // POST komentar treba autentifikaciju
                         .requestMatchers("/api/benchmark/**").permitAll()
                         .requestMatchers("/api/geolocation/**").permitAll()
+                        .requestMatchers("/api/etl/**").authenticated()
                         .requestMatchers("/api/comments/*").authenticated()
                         .requestMatchers("/api/videos/*/like").authenticated()
                         .anyRequest().authenticated()
