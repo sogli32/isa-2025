@@ -113,6 +113,7 @@ public class GeolocationController {
      */
     private List<VideoResponse> mapToVideoResponse(List<Video> videos) {
         return videos.stream()
+                .filter(Video::isAvailable)
                 .map(v -> {
                     Long likesCount = videoLikeRepository.countByVideo(v);
                     return new VideoResponse(v, likesCount);

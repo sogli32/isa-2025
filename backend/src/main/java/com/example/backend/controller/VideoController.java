@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,14 +50,29 @@ public class VideoController {
             @RequestParam(value = "latitude", required = false) Double latitude,
             @RequestParam(value = "longitude", required = false) Double longitude,
 
+            // Zakazano prikazivanje (opciono - ISO format: 2025-01-15T08:00:00)
+            @RequestParam(value = "scheduledAt", required = false) String scheduledAtStr,
+
             @RequestHeader("Authorization") String authHeader,
             HttpServletRequest httpRequest  // DODAJ OVO za IP geolokaciju fallback
     ) {
         try {
             String userEmail = extractEmailFromToken(authHeader);
 
+            LocalDateTime scheduledAt = null;
+            if (scheduledAtStr != null && !scheduledAtStr.trim().isEmpty()) {
+                try {
+                    scheduledAt = LocalDateTime.parse(scheduledAtStr);
+                    if (scheduledAt.isBefore(LocalDateTime.now())) {
+                        return ResponseEntity.badRequest().body("Zakazano vreme mora biti u budućnosti");
+                    }
+                } catch (DateTimeParseException e) {
+                    return ResponseEntity.badRequest().body("Neispravan format datuma. Koristite ISO format: 2025-01-15T08:00:00");
+                }
+            }
+
             CreateVideoRequest request = new CreateVideoRequest(
-                    title, description, tags, location, latitude, longitude
+                    title, description, tags, location, latitude, longitude, scheduledAt
             );
 
             VideoResponse video = videoService.createVideo(
@@ -112,19 +129,36 @@ public class VideoController {
     @GetMapping("/{id}/stream")
     public ResponseEntity<?> streamVideo(@PathVariable Long id) {
         try {
+            // Proveri da li je video dostupan (zakazani videi)
+            if (!videoService.isVideoAvailable(id)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("Video još nije dostupan. Zakazan je za kasnije prikazivanje.");
+            }
+
             byte[] videoData = videoService.getVideoFile(id);
-            
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.parseMediaType("video/mp4"));
             headers.setContentLength(videoData.length);
-            
+            headers.set("Accept-Ranges", "bytes");
+
             return new ResponseEntity<>(videoData, headers, HttpStatus.OK);
-            
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Failed to load video: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}/stream-info")
+    public ResponseEntity<?> getStreamInfo(@PathVariable Long id) {
+        try {
+            Map<String, Object> info = videoService.getStreamInfo(id);
+            return ResponseEntity.ok(info);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 

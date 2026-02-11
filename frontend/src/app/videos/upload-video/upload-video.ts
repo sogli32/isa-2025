@@ -17,6 +17,11 @@ export class UploadVideoComponent {
   tags: string = '';
   location: string = '';
 
+  // Zakazano prikazivanje
+  isScheduled: boolean = false;
+  scheduledDate: string = '';
+  scheduledTime: string = '';
+
   videoFile: File | null = null;
   thumbnailFile: File | null = null;
 
@@ -27,6 +32,11 @@ export class UploadVideoComponent {
   success: string = '';
   uploading: boolean = false;
   uploadProgress: number = 0;
+
+  get minDate(): string {
+    const now = new Date();
+    return now.toISOString().split('T')[0];
+  }
 
   constructor(
     private videoService: VideoService,
@@ -108,6 +118,21 @@ export class UploadVideoComponent {
       return;
     }
 
+    // Validacija zakazanog prikaza
+    let scheduledAt: string | null = null;
+    if (this.isScheduled) {
+      if (!this.scheduledDate || !this.scheduledTime) {
+        this.error = 'Datum i vreme su obavezni za zakazano prikazivanje';
+        return;
+      }
+      scheduledAt = `${this.scheduledDate}T${this.scheduledTime}:00`;
+      const scheduledDateTime = new Date(scheduledAt);
+      if (scheduledDateTime <= new Date()) {
+        this.error = 'Zakazano vreme mora biti u budućnosti';
+        return;
+      }
+    }
+
     this.uploading = true;
     this.uploadProgress = 0;
 
@@ -124,12 +149,17 @@ export class UploadVideoComponent {
       this.tags,
       this.location || null,
       this.videoFile,
-      this.thumbnailFile
+      this.thumbnailFile,
+      scheduledAt
     ).subscribe({
       next: (response) => {
         clearInterval(progressInterval);
         this.uploadProgress = 100;
-        this.success = 'Video uspešno postavljen! 🎬';
+        if (this.isScheduled) {
+          this.success = `Video zakazan za ${this.scheduledDate} u ${this.scheduledTime}!`;
+        } else {
+          this.success = 'Video uspešno postavljen!';
+        }
         this.uploading = false;
 
 setTimeout(() => {
@@ -163,6 +193,9 @@ setTimeout(() => {
     this.description = '';
     this.tags = '';
     this.location = '';
+    this.isScheduled = false;
+    this.scheduledDate = '';
+    this.scheduledTime = '';
     this.videoFile = null;
     this.thumbnailFile = null;
     this.videoFileName = '';

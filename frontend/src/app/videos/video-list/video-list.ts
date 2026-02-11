@@ -125,6 +125,18 @@ export class VideoListComponent implements OnInit {
     return this.videoService.getThumbnailUrl(videoId);
   }
 
+  formatScheduledDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('sr-RS', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }) + ' u ' + date.toLocaleTimeString('sr-RS', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
   /**
    * Otvaranje videa po ID-u
    */
