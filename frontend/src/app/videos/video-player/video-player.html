@@ -2,56 +2,92 @@
   <!-- Loading state -->
   <div *ngIf="loading" class="loading">
     <div class="spinner"></div>
-    <p>Učitavanje videa...</p>
+    <p>Ucitavanje videa...</p>
   </div>
 
   <!-- Error state -->
   <div *ngIf="error && !loading" class="error-container">
     <div class="error-box">
-      <h2>❌ Greška</h2>
+      <h2>Greska</h2>
       <p>{{ error }}</p>
-      <button (click)="goBack()" class="btn-back">Nazad na početnu</button>
+      <button (click)="goBack()" class="btn-back">Nazad na pocetnu</button>
+    </div>
+  </div>
+
+  <!-- Countdown za zakazani video koji jos nije dostupan -->
+  <div *ngIf="isWaitingForSchedule && video && !loading && !error" class="countdown-container">
+    <div class="countdown-box">
+      <div class="countdown-icon">&#9201;</div>
+      <h2>{{ video.title }}</h2>
+      <p class="countdown-label">Video je zakazan za</p>
+      <p class="countdown-scheduled-date">{{ formatScheduledDate(video.scheduledAt!) }}</p>
+      <div class="countdown-timer">
+        <span class="countdown-value">{{ countdownText }}</span>
+      </div>
+      <p class="countdown-hint">Video ce automatski poceti sa reprodukcijom kada dodje zakazano vreme.</p>
+      <button (click)="goBack()" class="btn-back">Nazad na pocetnu</button>
     </div>
   </div>
 
   <!-- Video + sidebar -->
-  <div *ngIf="video && !loading && !error" class="player-wrapper flex-container">
+  <div *ngIf="video && !loading && !error && !isWaitingForSchedule" class="player-wrapper flex-container">
 
     <!-- LEVA KOLONA: video + detalji -->
     <div class="main-video">
+      <!-- Oznaka za simulirani streaming -->
+      <div *ngIf="isScheduledStream" class="live-badge">
+        <span class="live-dot"></span> UZIVO STREAM
+      </div>
+
       <div class="video-wrapper">
-        <video [src]="videoStreamUrl" controls class="video-element" autoplay>
-          Vaš browser ne podržava video reprodukciju.
+        <video
+          #videoElement
+          [src]="videoStreamUrl"
+          controls
+          class="video-element"
+          [attr.autoplay]="!isScheduledStream ? '' : null"
+          (loadedmetadata)="onVideoLoaded()"
+          (seeked)="onVideoSeeked()">
+          Vas browser ne podrzava video reprodukciju.
         </video>
+
+        <!-- Overlay za zavrsen video -->
+        <div *ngIf="videoEnded && isScheduledStream" class="video-ended-overlay">
+          <p>Emitovanje ovog videa je zavrseno.</p>
+        </div>
       </div>
 
       <div class="video-details">
-        <button (click)="goBack()" class="btn-back-top">← Nazad</button>
+        <button (click)="goBack()" class="btn-back-top">&larr; Nazad</button>
 
         <h1 class="video-title">{{ video.title }}</h1>
 
        <div class="video-stats">
   <span class="stat">
-    <span class="icon">👁️</span>
+    <span class="icon">&#128065;</span>
     {{ formatViewCount(video.viewCount) }} pregleda
   </span>
   <span class="stat">
-    <span class="icon">📅</span>
+    <span class="icon">&#128197;</span>
     {{ formatDate(video.createdAt) }}
   </span>
   <span class="stat" *ngIf="video.location">
-    <span class="icon">📍</span>
+    <span class="icon">&#128205;</span>
     {{ video.location }}
+  </span>
+  <span class="stat" *ngIf="isScheduledStream">
+    <span class="icon">&#128225;</span>
+    Zakazani stream
   </span>
 
   <!-- LIKES SECTION -->
   <span class="stat like-section" *ngIf="video">
-    <button 
+    <button
       (click)="likeVideo()"
       [class.liked]="video.likedByUser"
       [disabled]="!commentService.authService.isLoggedIn()"
       class="btn-like">
-      {{ video.likedByUser ? '❤️ Lajkovano' : '🤍 Lajk' }}
+      {{ video.likedByUser ? '&#10084;&#65039; Lajkovano' : '&#x1F90D; Lajk' }}
     </button>
     <span class="like-count">{{ video.likeCount || 0 }}</span>
   </span>
@@ -81,14 +117,14 @@
 
   <!-- Forma za dodavanje komentara (samo ulogovani) -->
   <div *ngIf="commentService.authService.isLoggedIn(); else loginPrompt" class="add-comment">
-    <textarea 
+    <textarea
       [(ngModel)]="newComment"
       placeholder="Ostavite komentar..."
       rows="3"
       [disabled]="postingComment">
     </textarea>
-    <button 
-      (click)="addComment()" 
+    <button
+      (click)="addComment()"
       [disabled]="postingComment || !newComment.trim()"
       class="btn-post">
       {{ postingComment ? 'Postavljanje...' : 'Postavi komentar' }}
@@ -102,10 +138,10 @@
     </div>
   </ng-template>
 
-  <!-- Lista komentara (vidljiva svima, čak i neulogovani) -->
+  <!-- Lista komentara (vidljiva svima) -->
   <div class="comments-list">
     <div *ngIf="comments.length === 0" class="no-comments">
-      <p>Još nema komentara.</p>
+      <p>Jos nema komentara.</p>
     </div>
 
     <div *ngFor="let comment of comments" class="comment">
@@ -125,10 +161,10 @@
   <h3>Ostali videi</h3>
   <div *ngFor="let v of otherVideos" class="sidebar-video" (click)="goToVideo(v.id)">
     <div class="thumbnail-container">
-      <img 
+      <img
         class="sidebar-thumbnail"
-        [src]="getThumbnailUrl(v.id)" 
-        alt="{{ v.title }}" 
+        [src]="getThumbnailUrl(v.id)"
+        alt="{{ v.title }}"
         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTY4IiBoZWlnaHQ9Ijk0IiB2aWV3Qm94PSIwIDAgMTY4IDk0IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxNjgiIGhlaWdodD0iOTQiIGZpbGw9IiNGMEYwRjAiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPk5vIGltYWdlPC90ZXh0Pjwvc3ZnPg=='"
       />
     </div>
@@ -136,7 +172,7 @@
       <div class="sidebar-title">{{ v.title }}</div>
       <div class="sidebar-username">{{ v.username }}</div>
       <div class="sidebar-stats">
-        <span>👁️ {{ formatViewCount(v.viewCount) }}</span>
+        <span>&#128065; {{ formatViewCount(v.viewCount) }}</span>
       </div>
     </div>
   </div>

@@ -30,6 +30,9 @@ public class Video {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @Column
+    private LocalDateTime scheduledAt;
+
     @Column(length = 255)
     private String location; // tekstualni opis (grad, država)
 
@@ -172,5 +175,24 @@ public class Video {
 
     public void setPopularityScore(Double popularityScore) {
         this.popularityScore = popularityScore;
+    }
+
+    public LocalDateTime getScheduledAt() {
+        return scheduledAt;
+    }
+
+    public void setScheduledAt(LocalDateTime scheduledAt) {
+        this.scheduledAt = scheduledAt;
+    }
+
+    public boolean isAvailable() {
+        if (scheduledAt == null) {
+            return true;
+        }
+        return !LocalDateTime.now().isBefore(scheduledAt);
+    }
+
+    public boolean isScheduled() {
+        return scheduledAt != null;
     }
 }

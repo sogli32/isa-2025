@@ -1,5 +1,7 @@
 package com.example.backend.dto;
 
+import java.time.LocalDateTime;
+
 public class CreateVideoRequest {
 
     private String title;
@@ -10,6 +12,9 @@ public class CreateVideoRequest {
     // NOVO: Koordinate
     private Double latitude;
     private Double longitude;
+
+    // Zakazano prikazivanje
+    private LocalDateTime scheduledAt;
 
     public CreateVideoRequest() {}
 
@@ -29,6 +34,18 @@ public class CreateVideoRequest {
         this.location = location;
         this.latitude = latitude;
         this.longitude = longitude;
+    }
+
+    public CreateVideoRequest(String title, String description, String tags,
+                              String location, Double latitude, Double longitude,
+                              LocalDateTime scheduledAt) {
+        this.title = title;
+        this.description = description;
+        this.tags = tags;
+        this.location = location;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.scheduledAt = scheduledAt;
     }
 
     // Getters and Setters
@@ -79,6 +96,14 @@ public class CreateVideoRequest {
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    public LocalDateTime getScheduledAt() {
+        return scheduledAt;
+    }
+
+    public void setScheduledAt(LocalDateTime scheduledAt) {
+        this.scheduledAt = scheduledAt;
     }
 
     // Helper metoda za validaciju

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Video } from '../models/video.model';
+import { Video, StreamInfo } from '../models/video.model';
 
 @Injectable({
   providedIn: 'root'
@@ -21,7 +21,8 @@ export class VideoService {
     tags: string,
     location: string | null,
     videoFile: File,
-    thumbnailFile: File
+    thumbnailFile: File,
+    scheduledAt: string | null = null
   ): Observable<Video> {
     const formData = new FormData();
     formData.append('title', title);
@@ -32,6 +33,9 @@ export class VideoService {
     }
     formData.append('videoFile', videoFile);
     formData.append('thumbnailFile', thumbnailFile);
+    if (scheduledAt) {
+      formData.append('scheduledAt', scheduledAt);
+    }
 
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
@@ -110,6 +114,10 @@ toggleLike(videoId: number) {
   if (radiusKm) params.radiusKm = radiusKm;
 
   return this.http.post<Video[]>(`http://localhost:8080/api/geolocation/videos/nearby`, body, { params });
+}
+
+getStreamInfo(id: number): Observable<StreamInfo> {
+  return this.http.get<StreamInfo>(`${this.apiUrl}/${id}/stream-info`);
 }
 
 getPopularVideosNearby(
