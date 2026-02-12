@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+option java_package = "com.example.backend.proto";
+option java_outer_classname = "VideoUploadEventProto";
+
+message UploadEvent {
+  int64 video_id = 1;
+  string title = 2;
+  string username = 3;
+  int64 file_size = 4;
+  string upload_time = 5;
+  string location = 6;
+  repeated string tags = 7;
+}

@@ -6,10 +6,12 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -23,27 +25,40 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Dozvoli OPTIONS preflight za sve endpointe (CORS)
+                        // OPTIONS requests (CORS preflight) - UVEK DOZVOLI
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // javni endpointi
-                        .requestMatchers("/hello").permitAll()
+
+                        // AUTH endpoints - JAVNI
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/videos").permitAll()
-                        .requestMatchers("/api/videos/*/thumbnail").permitAll()
-                        .requestMatchers("/api/videos/*/stream").permitAll()
-                        .requestMatchers("/api/videos/*/stream-info").permitAll()
-                        .requestMatchers("/api/videos/*").permitAll()
-                        .requestMatchers("/api/videos/*/view").permitAll()
-                        .requestMatchers("/api/comments/*").permitAll() // GET komentari svi
-                        // POST komentar treba autentifikaciju
-                        .requestMatchers("/api/benchmark/**").permitAll()
-                        .requestMatchers("/api/load-test/**").permitAll()
-                        .requestMatchers("/api/geolocation/**").permitAll()
-                        // Actuator / Prometheus monitoring endpointi
+
+                        // WebSocket
+                        .requestMatchers("/ws-chat/**").permitAll()
+
+                        // Actuator / Prometheus monitoring
                         .requestMatchers("/actuator/**").permitAll()
+
+                        // Load test endpointi
+                        .requestMatchers("/api/load-test/**").permitAll()
+
+                        // Videos - JAVNI
+                        .requestMatchers(HttpMethod.GET, "/api/videos/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/videos").authenticated()
+
+                        // Comments - GET javno, POST authenticated
+                        .requestMatchers(HttpMethod.GET, "/api/comments/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/comments/**").authenticated()
+
+                        // Geolocation & Benchmark - JAVNI
+                        .requestMatchers("/api/geolocation/**").permitAll()
+                        .requestMatchers("/api/benchmark/**").permitAll()
+
+                        // ETL - authenticated
                         .requestMatchers("/api/etl/**").authenticated()
-                        .requestMatchers("/api/comments/*").authenticated()
+
+                        // Likes - authenticated
                         .requestMatchers("/api/videos/*/like").authenticated()
+
+                        // Sve ostalo - authenticated
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

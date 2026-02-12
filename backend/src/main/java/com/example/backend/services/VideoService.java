@@ -39,6 +39,7 @@ public class VideoService {
     private final ThumbnailCacheService thumbnailCacheService;
     private final PopularityCalculationService popularityCalculationService;
     private final GeolocationService geolocationService;
+    private final VideoUploadPublisher videoUploadPublisher;
 
     public VideoService(VideoRepository videoRepository,
                         UserRepository userRepository,
@@ -47,7 +48,8 @@ public class VideoService {
                         FileStorageService fileStorageService,
                         ThumbnailCacheService thumbnailCacheService,
                         PopularityCalculationService popularityCalculationService,
-                        GeolocationService geolocationService) {
+                        GeolocationService geolocationService,
+                        VideoUploadPublisher videoUploadPublisher) {
         this.videoRepository = videoRepository;
         this.userRepository = userRepository;
         this.videoLikeRepository = videoLikeRepository;
@@ -56,6 +58,7 @@ public class VideoService {
         this.thumbnailCacheService = thumbnailCacheService;
         this.popularityCalculationService = popularityCalculationService;
         this.geolocationService = geolocationService;
+        this.videoUploadPublisher = videoUploadPublisher;
     }
 
     // ================= CREATE VIDEO =================
@@ -102,18 +105,11 @@ public class VideoService {
                 video.setScheduledAt(request.getScheduledAt());
             }
 
-            // ========== NOVO: Postavi koordinate ==========
-
-            // Ako frontend poslao koordinate - koristi ih
+            // Postavi koordinate
             if (request.hasValidCoordinates()) {
                 video.setLatitude(request.getLatitude());
                 video.setLongitude(request.getLongitude());
-
-                System.out.println("✅ Using coordinates from frontend: " +
-                        request.getLatitude() + ", " + request.getLongitude());
-            }
-            // Ako nije - koristi IP geolokaciju kao fallback
-            else {
+            } else {
                 String clientIp = IpUtil.getClientIp(httpRequest);
                 UserLocationResponse ipLocation = geolocationService.getLocationFromIp(clientIp);
 
@@ -121,21 +117,20 @@ public class VideoService {
                     video.setLatitude(ipLocation.getLatitude());
                     video.setLongitude(ipLocation.getLongitude());
 
-                    System.out.println("⚠️ Using IP geolocation fallback: " +
-                            ipLocation.getLatitude() + ", " + ipLocation.getLongitude());
-
-                    // Opciono: Ažuriraj tekstualnu lokaciju ako frontend nije poslao
                     if (request.getLocation() == null || request.getLocation().trim().isEmpty()) {
                         String locationText = ipLocation.getCity() + ", " + ipLocation.getCountry();
                         video.setLocation(locationText);
                     }
-                } else {
-                    System.out.println("❌ Could not determine location (no coordinates or IP)");
                 }
             }
 
             // Sačuvaj u bazu
             video = videoRepository.save(video);
+
+            // Publish na RabbitMQ (JSON + Protobuf)
+            long fileSize = videoFile.getSize();
+            videoUploadPublisher.publishJsonEvent(video, fileSize);
+            videoUploadPublisher.publishProtobufEvent(video, fileSize);
 
             return new VideoResponse(video, 0L);
 
@@ -241,12 +236,12 @@ public class VideoService {
         if (existingLike.isPresent()) {
             videoLikeRepository.delete(existingLike.get());
             popularityCalculationService.updateVideoPopularityScore(videoId);
-            return false; // unlike
+            return false;
         } else {
             VideoLike like = new VideoLike(video, user);
             videoLikeRepository.save(like);
             popularityCalculationService.updateVideoPopularityScore(videoId);
-            return true; // like
+            return true;
         }
     }
 
@@ -264,7 +259,6 @@ public class VideoService {
         fileStorageService.deleteFile(video.getThumbnailPath(), false);
         thumbnailCacheService.evict(video.getThumbnailPath());
 
-        // Prvo obrišemo sve lajkove
         videoLikeRepository.deleteAllByVideo(video);
 
         videoRepository.delete(video);

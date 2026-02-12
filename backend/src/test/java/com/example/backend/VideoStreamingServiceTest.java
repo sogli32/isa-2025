@@ -55,7 +55,7 @@ class VideoStreamingServiceTest {
     @BeforeEach
     void setUp() {
         stubFileStorage = new StubFileStorageService();
-
+        VideoUploadPublisher videoUploadPublisher = mock(VideoUploadPublisher.class);
         videoService = new VideoService(
                 videoRepository,
                 userRepository,
@@ -64,7 +64,8 @@ class VideoStreamingServiceTest {
                 stubFileStorage,
                 thumbnailCacheService,
                 popularityCalculationService,
-                geolocationService
+                geolocationService,
+                videoUploadPublisher
         );
 
         testUser = new User();

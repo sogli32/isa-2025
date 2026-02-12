@@ -14,7 +14,7 @@
     </div>
   </div>
 
-  <!-- Video + sidebar -->
+  <!-- Video + sidebar + ČET -->
   <div *ngIf="video && !loading && !error" class="player-wrapper flex-container">
 
     <!-- LEVA KOLONA: video + detalji -->
@@ -26,16 +26,16 @@
 
       <div class="video-wrapper">
         <video
-  #videoElement
-  [src]="videoStreamUrl"
-  controls
-  muted
-  preload="auto"
-  class="video-element"
-  (loadedmetadata)="onVideoLoaded()"
-  (seeked)="onVideoSeeked()">
-  Vaš browser ne podržava video reprodukciju.
-</video>
+          #videoElement
+          [src]="videoStreamUrl"
+          controls
+          muted
+          preload="auto"
+          class="video-element"
+          (loadedmetadata)="onVideoLoaded()"
+          (seeked)="onVideoSeeked()">
+          Vaš browser ne podržava video reprodukciju.
+        </video>
 
         <!-- Overlay za zavrsen video -->
         <div *ngIf="videoEnded && isScheduledStream" class="video-ended-overlay">
@@ -48,37 +48,36 @@
 
         <h1 class="video-title">{{ video.title }}</h1>
 
-       <div class="video-stats">
-  <span class="stat">
-    <span class="icon">&#128065;</span>
-    {{ formatViewCount(video.viewCount) }} pregleda
-  </span>
-  <span class="stat">
-    <span class="icon">&#128197;</span>
-    {{ formatDate(video.createdAt) }}
-  </span>
-  <span class="stat" *ngIf="video.location">
-    <span class="icon">&#128205;</span>
-    {{ video.location }}
-  </span>
-  <span class="stat" *ngIf="isScheduledStream">
-    <span class="icon">&#128225;</span>
-    Zakazani stream
-  </span>
+        <div class="video-stats">
+          <span class="stat">
+            <span class="icon">&#128065;</span>
+            {{ formatViewCount(video.viewCount) }} pregleda
+          </span>
+          <span class="stat">
+            <span class="icon">&#128197;</span>
+            {{ formatDate(video.createdAt) }}
+          </span>
+          <span class="stat" *ngIf="video.location">
+            <span class="icon">&#128205;</span>
+            {{ video.location }}
+          </span>
+          <span class="stat" *ngIf="isScheduledStream">
+            <span class="icon">&#128225;</span>
+            Zakazani stream
+          </span>
 
-  <!-- LIKES SECTION -->
-  <span class="stat like-section" *ngIf="video">
-    <button
-      (click)="likeVideo()"
-      [class.liked]="video.likedByUser"
-      [disabled]="!commentService.authService.isLoggedIn()"
-      class="btn-like">
-      {{ video.likedByUser ? '&#10084;&#65039; Lajkovano' : '&#x1F90D; Lajk' }}
-    </button>
-    <span class="like-count">{{ video.likeCount || 0 }}</span>
-  </span>
-</div>
-
+          <!-- LIKES SECTION -->
+          <span class="stat like-section" *ngIf="video">
+            <button
+              (click)="likeVideo()"
+              [class.liked]="video.likedByUser"
+              [disabled]="!commentService.authService.isLoggedIn()"
+              class="btn-like">
+              {{ video.likedByUser ? '&#10084;&#65039; Lajkovano' : '&#x1F90D; Lajk' }}
+            </button>
+            <span class="like-count">{{ video.likeCount || 0 }}</span>
+          </span>
+        </div>
 
         <div class="channel-info">
           <div class="avatar">{{ video.username.charAt(0).toUpperCase() }}</div>
@@ -98,71 +97,134 @@
             </span>
           </div>
         </div>
-<div class="comments-section">
-  <h3>Komentari ({{ comments.length }})</h3>
 
-  <!-- Forma za dodavanje komentara (samo ulogovani) -->
-  <div *ngIf="commentService.authService.isLoggedIn(); else loginPrompt" class="add-comment">
-    <textarea
-      [(ngModel)]="newComment"
-      placeholder="Ostavite komentar..."
-      rows="3"
-      [disabled]="postingComment">
-    </textarea>
-    <button
-      (click)="addComment()"
-      [disabled]="postingComment || !newComment.trim()"
-      class="btn-post">
-      {{ postingComment ? 'Postavljanje...' : 'Postavi komentar' }}
-    </button>
-  </div>
+        <!-- ============ WEBSOCKET ČET SEKCIJA ============ -->
+        <div class="live-chat-section" *ngIf="isScheduledStream">
+          <h3>
+            💬 Uživo čet 
+            <span class="chat-status" [class.connected]="chatConnected">
+              {{ chatConnected ? '● Online' : '○ Offline' }}
+            </span>
+          </h3>
 
-  <!-- Poruka za neulogovane -->
-  <ng-template #loginPrompt>
-    <div class="login-prompt">
-      <p>Morate biti ulogovani da biste ostavili komentar.</p>
-    </div>
-  </ng-template>
+          <div class="chat-container">
+            <!-- Chat poruke -->
+            <div #chatMessagesContainer class="chat-messages">
+              <div *ngFor="let msg of chatMessages" 
+                   [ngClass]="getChatMessageClass(msg)"
+                   class="chat-message">
+                
+                <!-- JOIN/LEAVE poruke -->
+                <div *ngIf="msg.type === 'JOIN' || msg.type === 'LEAVE'" class="system-message">
+                  <span class="system-icon">{{ msg.type === 'JOIN' ? '👋' : '👋' }}</span>
+                  <span class="system-text">
+                    {{ msg.sender }} {{ msg.type === 'JOIN' ? 'se pridružio' : 'napustio' }} čet
+                  </span>
+                  <span class="system-time">{{ formatChatTime(msg.timestamp) }}</span>
+                </div>
 
-  <!-- Lista komentara (vidljiva svima) -->
-  <div class="comments-list">
-    <div *ngIf="comments.length === 0" class="no-comments">
-      <p>Jos nema komentara.</p>
-    </div>
+                <!-- CHAT poruke -->
+                <div *ngIf="msg.type === 'CHAT'" class="user-message">
+                  <div class="message-header">
+                    <span class="message-sender">{{ msg.sender }}</span>
+                    <span class="message-time">{{ formatChatTime(msg.timestamp) }}</span>
+                  </div>
+                  <div class="message-content">{{ msg.content }}</div>
+                </div>
+              </div>
 
-    <div *ngFor="let comment of comments" class="comment">
-      <div class="comment-header">
-        <span class="comment-username">{{ comment.username }}</span>
-        <span class="comment-date">{{ formatDate(comment.createdAt) }}</span>
+              <!-- Placeholder ako nema poruka -->
+              <div *ngIf="chatMessages.length === 0" class="no-messages">
+                <p>Čet je prazan. Budite prvi koji će poslati poruku! 👋</p>
+              </div>
+            </div>
+
+            <!-- Input za slanje poruka -->
+            <div class="chat-input-wrapper">
+              <input
+                type="text"
+                [(ngModel)]="newChatMessage"
+                (keyup.enter)="sendChatMessage()"
+                placeholder="Pošaljite poruku..."
+                class="chat-input"
+                [disabled]="!chatConnected">
+              <button 
+                (click)="sendChatMessage()"
+                [disabled]="!chatConnected || !newChatMessage.trim()"
+                class="btn-send-chat">
+                📤
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- KOMENTARI SEKCIJA (ispod četa) -->
+        <div class="comments-section">
+          <h3>Komentari ({{ comments.length }})</h3>
+
+          <!-- Forma za dodavanje komentara (samo ulogovani) -->
+          <div *ngIf="commentService.authService.isLoggedIn(); else loginPrompt" class="add-comment">
+            <textarea
+              [(ngModel)]="newComment"
+              placeholder="Ostavite komentar..."
+              rows="3"
+              [disabled]="postingComment">
+            </textarea>
+            <button
+              (click)="addComment()"
+              [disabled]="postingComment || !newComment.trim()"
+              class="btn-post">
+              {{ postingComment ? 'Postavljanje...' : 'Postavi komentar' }}
+            </button>
+          </div>
+
+          <!-- Poruka za neulogovane -->
+          <ng-template #loginPrompt>
+            <div class="login-prompt">
+              <p>Morate biti ulogovani da biste ostavili komentar.</p>
+            </div>
+          </ng-template>
+
+          <!-- Lista komentara (vidljiva svima) -->
+          <div class="comments-list">
+            <div *ngIf="comments.length === 0" class="no-comments">
+              <p>Jos nema komentara.</p>
+            </div>
+
+            <div *ngFor="let comment of comments" class="comment">
+              <div class="comment-header">
+                <span class="comment-username">{{ comment.username }}</span>
+                <span class="comment-date">{{ formatDate(comment.createdAt) }}</span>
+              </div>
+              <p class="comment-content">{{ comment.content }}</p>
+            </div>
+          </div>
+        </div>
+
       </div>
-      <p class="comment-content">{{ comment.content }}</p>
-    </div>
-  </div>
-</div>
-
-      </div>
     </div>
 
-<div class="sidebar">
-  <h3>Ostali videi</h3>
-  <div *ngFor="let v of otherVideos" class="sidebar-video" (click)="goToVideo(v.id)">
-    <div class="thumbnail-container">
-      <img
-        class="sidebar-thumbnail"
-        [src]="getThumbnailUrl(v.id)"
-        alt="{{ v.title }}"
-        onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTY4IiBoZWlnaHQ9Ijk0IiB2aWV3Qm94PSIwIDAgMTY4IDk0IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxNjgiIGhlaWdodD0iOTQiIGZpbGw9IiNGMEYwRjAiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPk5vIGltYWdlPC90ZXh0Pjwvc3ZnPg=='"
-      />
-    </div>
-    <div class="sidebar-content">
-      <div class="sidebar-title">{{ v.title }}</div>
-      <div class="sidebar-username">{{ v.username }}</div>
-      <div class="sidebar-stats">
-        <span>&#128065; {{ formatViewCount(v.viewCount) }}</span>
+    <!-- DESNA KOLONA: Ostali videi -->
+    <div class="sidebar">
+      <h3>Ostali videi</h3>
+      <div *ngFor="let v of otherVideos" class="sidebar-video" (click)="goToVideo(v.id)">
+        <div class="thumbnail-container">
+          <img
+            class="sidebar-thumbnail"
+            [src]="getThumbnailUrl(v.id)"
+            alt="{{ v.title }}"
+            onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTY4IiBoZWlnaHQ9Ijk0IiB2aWV3Qm94PSIwIDAgMTY4IDk0IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxNjgiIGhlaWdodD0iOTQiIGZpbGw9IiNGMEYwRjAiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPk5vIGltYWdlPC90ZXh0Pjwvc3ZnPg=='"
+          />
+        </div>
+        <div class="sidebar-content">
+          <div class="sidebar-title">{{ v.title }}</div>
+          <div class="sidebar-username">{{ v.username }}</div>
+          <div class="sidebar-stats">
+            <span>&#128065; {{ formatViewCount(v.viewCount) }}</span>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
 
   </div>
 </div>
