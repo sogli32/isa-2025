@@ -37,7 +37,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/comments/*").permitAll() // GET komentari svi
                         // POST komentar treba autentifikaciju
                         .requestMatchers("/api/benchmark/**").permitAll()
+                        .requestMatchers("/api/load-test/**").permitAll()
                         .requestMatchers("/api/geolocation/**").permitAll()
+                        // Actuator / Prometheus monitoring endpointi
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api/etl/**").authenticated()
                         .requestMatchers("/api/comments/*").authenticated()
                         .requestMatchers("/api/videos/*/like").authenticated()

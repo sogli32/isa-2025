@@ -1,5 +1,6 @@
 package com.example.backend.security;
 
+import com.example.backend.services.ActiveUsersMetricService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,9 +18,11 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final ActiveUsersMetricService activeUsersMetricService;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, ActiveUsersMetricService activeUsersMetricService) {
         this.jwtUtil = jwtUtil;
+        this.activeUsersMetricService = activeUsersMetricService;
     }
 
     @Override
@@ -48,9 +51,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
+                // Belezi aktivnost korisnika za metriku "active_users_24h"
+                activeUsersMetricService.recordUserActivity(email);
+
             } catch (Exception e) {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                return;
+                // Ne blokiraj request - samo nemoj postaviti autentifikaciju.
+                // Spring Security ce sam odluciti da li endpoint zahteva auth.
+                SecurityContextHolder.clearContext();
             }
         }
 
