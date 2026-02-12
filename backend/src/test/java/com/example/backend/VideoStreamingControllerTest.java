@@ -16,10 +16,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Unit testovi za streaming endpoint-e u VideoController-u.
- * Koriste rucne stubove jer Mockito + ByteBuddy ne podrzava Java 25 klase.
- */
+
 class VideoStreamingControllerTest {
 
     private VideoController videoController;
@@ -29,9 +26,7 @@ class VideoStreamingControllerTest {
     void setUp() {
         stubVideoService = new StubVideoService();
 
-        // JwtUtil i GeolocationService nisu potrebni za streaming testove,
-        // ali VideoController ih trazi u konstruktoru.
-        // JwtUtil je konkretna klasa koja se moze instancirati.
+
         JwtUtil jwtUtil = new JwtUtil();
         GeolocationService geoService = new GeolocationService();
 
@@ -201,12 +196,6 @@ class VideoStreamingControllerTest {
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
 
-    // ===== Stub VideoService =====
-
-    /**
-     * Rucni stub za VideoService jer Mockito/ByteBuddy ne podrzava Java 25 klase.
-     * Overajduje samo streaming-related metode.
-     */
     static class StubVideoService extends VideoService {
 
         private boolean videoAvailable = true;
@@ -216,7 +205,7 @@ class VideoStreamingControllerTest {
         private Map<String, Object> streamInfo = new HashMap<>();
 
         public StubVideoService() {
-            super(null, null, null, null, null, null, null, null);
+            super(null, null, null, null, null, null, null, null, null);
         }
 
         public void setVideoAvailable(boolean available) {

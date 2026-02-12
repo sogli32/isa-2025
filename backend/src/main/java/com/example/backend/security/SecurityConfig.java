@@ -6,45 +6,61 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        System.out.println("✅ SecurityConfig initialized");
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        System.out.println("🔧 Configuring SecurityFilterChain...");
+        
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Dozvoli OPTIONS preflight za sve endpointe (CORS)
+                        // OPTIONS requests (CORS preflight) - UVEK DOZVOLI
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // javni endpointi
-                        .requestMatchers("/hello").permitAll()
+                        
+                        // AUTH endpoints - JAVNI
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/videos").permitAll()
-                        .requestMatchers("/api/videos/*/thumbnail").permitAll()
-                        .requestMatchers("/api/videos/*/stream").permitAll()
-                        .requestMatchers("/api/videos/*/stream-info").permitAll()
-                        .requestMatchers("/api/videos/*").permitAll()
-                        .requestMatchers("/api/videos/*/view").permitAll()
-                        .requestMatchers("/api/comments/*").permitAll() // GET komentari svi
-                        // POST komentar treba autentifikaciju
-                        .requestMatchers("/api/benchmark/**").permitAll()
+                        
+                        // WebSocket
+                        .requestMatchers("/ws-chat/**").permitAll()
+                        
+                        // Actuator
+                        .requestMatchers("/actuator/**").permitAll()
+                        
+                        // Videos - JAVNI
+                        .requestMatchers(HttpMethod.GET, "/api/videos/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/videos").authenticated()
+                        
+                        // Comments - GET javno, POST authenticated
+                        .requestMatchers(HttpMethod.GET, "/api/comments/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/comments/**").authenticated()
+                        
+                        // Geolocation & Benchmark - JAVNI
                         .requestMatchers("/api/geolocation/**").permitAll()
-                        .requestMatchers("/api/etl/**").authenticated()
-                        .requestMatchers("/api/comments/*").authenticated()
+                        .requestMatchers("/api/benchmark/**").permitAll()
+                        
+                        // Likes - authenticated
                         .requestMatchers("/api/videos/*/like").authenticated()
+                        
+                        // Sve ostalo - authenticated
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
+        System.out.println("✅ SecurityFilterChain configured");
         return http.build();
     }
 

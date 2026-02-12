@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/geolocation")
-@CrossOrigin(origins = "http://localhost:4200")
+//@CrossOrigin(origins = "http://localhost:4200")
 public class GeolocationController {
 
     private final GeolocationService geolocationService;

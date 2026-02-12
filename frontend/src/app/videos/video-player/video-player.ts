@@ -5,6 +5,7 @@ import { VideoService } from '../../../core/services/video.service';
 import { Video } from '../../../core/models/video.model';
 import { VideoComment } from '../../../core/models/comment.model';
 import { CommentService } from '../../../core/services/comment.service';
+import { ChatService, ChatMessage } from '../../../core/services/chat.service';
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -12,7 +13,7 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './video-player.html',
   styleUrls: ['./video-player.css'],
   standalone: true,
-  imports: [CommonModule,FormsModule]
+  imports: [CommonModule, FormsModule]
 })
 export class VideoPlayerComponent implements OnInit, OnDestroy {
   video: Video | null = null;
@@ -27,6 +28,12 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
   newComment: string = '';
   postingComment: boolean = false;
 
+  // ============ WEBSOCKET ČET ============
+  chatMessages: ChatMessage[] = [];
+  newChatMessage: string = '';
+  chatConnected: boolean = false;
+  currentUsername: string = '';
+
   // Simulirani streaming za zakazane videe
   isScheduledStream: boolean = false;
   streamOffsetSeconds: number = 0;
@@ -38,28 +45,46 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
   private isSyncingPosition: boolean = false;
 
   @ViewChild('videoElement') videoElementRef!: ElementRef<HTMLVideoElement>;
+  @ViewChild('chatMessagesContainer') chatMessagesContainer!: ElementRef<HTMLDivElement>;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private videoService: VideoService,
     public commentService: CommentService,
+    private chatService: ChatService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
-  const videoId = Number(this.route.snapshot.paramMap.get('id'));
-  if (!videoId || isNaN(videoId)) {
-    this.error = 'Neispravan ID videa';
-    this.loading = false;
-    this.cdr.detectChanges();
-    return;
-  }
+    const videoId = Number(this.route.snapshot.paramMap.get('id'));
+    if (!videoId || isNaN(videoId)) {
+      this.error = 'Neispravan ID videa';
+      this.loading = false;
+      this.cdr.detectChanges();
+      return;
+    }
 
-  this.loadVideo(videoId);
-  this.loadOtherVideos(videoId);
-  this.loadComments(videoId);
-}
+    this.loadVideo(videoId);
+    this.loadOtherVideos(videoId);
+    this.loadComments(videoId);
+
+    // Povuci username iz localStorage (JWT decode bi bio bolji pristup)
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        this.currentUsername = payload.sub || 'Anonymous';
+      } catch (e) {
+        this.currentUsername = 'Anonymous';
+      }
+    } else {
+      this.currentUsername = 'Anonymous';
+    }
+
+    // Konektuj se na WebSocket čet
+    this.connectToChat(videoId);
+  }
 
   ngOnDestroy() {
     if (this.seekSyncInterval) {
@@ -68,7 +93,61 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
     if (this.countdownInterval) {
       clearInterval(this.countdownInterval);
     }
+    // Diskonektuj se sa WebSocket-a
+    this.chatService.disconnect();
   }
+
+  // ============ WEBSOCKET ČET METODE ============
+
+  connectToChat(videoId: number) {
+    this.chatService.connect(videoId, this.currentUsername).subscribe({
+      next: (message: ChatMessage) => {
+        this.chatMessages.push(message);
+        this.chatConnected = true;
+        this.cdr.detectChanges();
+        
+        // Auto-scroll do dna četa
+        setTimeout(() => this.scrollChatToBottom(), 100);
+      },
+      error: (err) => {
+        console.error('Chat connection error:', err);
+        this.chatConnected = false;
+      }
+    });
+  }
+
+  sendChatMessage() {
+    if (!this.newChatMessage.trim() || !this.video) return;
+
+    this.chatService.sendMessage(
+      this.video.id,
+      this.newChatMessage,
+      this.currentUsername
+    );
+
+    this.newChatMessage = '';
+  }
+
+  scrollChatToBottom() {
+    if (this.chatMessagesContainer) {
+      const container = this.chatMessagesContainer.nativeElement;
+      container.scrollTop = container.scrollHeight;
+    }
+  }
+
+  getChatMessageClass(message: ChatMessage): string {
+    if (message.type === 'JOIN') return 'chat-join';
+    if (message.type === 'LEAVE') return 'chat-leave';
+    if (message.sender === this.currentUsername) return 'chat-own';
+    return 'chat-other';
+  }
+
+  formatChatTime(timestamp: string): string {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // ============ OSTALE METODE (bez promene) ============
 
   loadComments(videoId: number) {
     this.commentService.getComments(videoId).subscribe({
@@ -101,20 +180,19 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
   }
 
   likeVideo() {
-  if (!this.video) return;
+    if (!this.video) return;
 
-  this.videoService.toggleLike(this.video.id).subscribe({
-    next: (res) => {
-      if (this.video) {
-        this.video.likedByUser = res.liked;
-        this.video.likeCount = res.likeCount;
-        this.cdr.detectChanges();
-      }
-    },
-    error: (err) => console.error('Failed to toggle like', err)
-  });
-}
-
+    this.videoService.toggleLike(this.video.id).subscribe({
+      next: (res) => {
+        if (this.video) {
+          this.video.likedByUser = res.liked;
+          this.video.likeCount = res.likeCount;
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err) => console.error('Failed to toggle like', err)
+    });
+  }
 
   loadVideo(videoId: number) {
     this.loading = true;
@@ -129,10 +207,8 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
       next: (video) => {
         this.video = video;
 
-        // Ako je zakazan i dostupan - simulirani streaming
         if (video.scheduledAt && video.available) {
           this.isScheduledStream = true;
-          // Racunaj offset lokalno
           const now = new Date();
           const scheduled = new Date(video.scheduledAt);
           this.streamOffsetSeconds = Math.max(0, Math.floor((now.getTime() - scheduled.getTime()) / 1000));
@@ -143,7 +219,6 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
         this.loading = false;
         this.cdr.detectChanges();
 
-        // Increment view count kada se video ucita
         this.incrementViewCount(videoId);
       },
       error: (err) => {
@@ -153,8 +228,8 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
       }
     });
   }
-onVideoLoaded() {
-    // Ako nije stream, samo pusti normalno
+
+  onVideoLoaded() {
     if (!this.isScheduledStream || !this.video || !this.videoElementRef) {
       this.videoElementRef?.nativeElement.play().catch(() => {});
       return;
@@ -167,7 +242,6 @@ onVideoLoaded() {
     console.log('duration:', videoEl.duration);
     console.log('readyState:', videoEl.readyState);
 
-    // Sacekaj da video bude zaista spreman za seek
     const applyOffset = () => {
       const now = new Date();
       const scheduled = new Date(this.video!.scheduledAt!);
@@ -187,7 +261,6 @@ onVideoLoaded() {
         videoEl.currentTime = offsetSeconds;
       }
 
-      // Kada browser zavrsi seek, pokreni play
       const onSeekedOnce = () => {
         videoEl.removeEventListener('seeked', onSeekedOnce);
         this.isSyncingPosition = false;
@@ -201,7 +274,6 @@ onVideoLoaded() {
       };
       videoEl.addEventListener('seeked', onSeekedOnce);
 
-      // Fallback ako seeked ne puca (npr. offset = 0)
       setTimeout(() => {
         this.isSyncingPosition = false;
       }, 500);
@@ -209,11 +281,9 @@ onVideoLoaded() {
       this.startSeekSync(videoEl);
     };
 
-    // Ako video vec ima dovoljno podataka, primeni odmah
     if (videoEl.readyState >= 2 && videoEl.duration > 0) {
       applyOffset();
     } else {
-      // Sacekaj canplay event
       const onCanPlay = () => {
         videoEl.removeEventListener('canplay', onCanPlay);
         applyOffset();
@@ -232,7 +302,6 @@ onVideoLoaded() {
       const scheduled = new Date(this.video.scheduledAt!);
       const livePosition = Math.floor((now.getTime() - scheduled.getTime()) / 1000);
 
-      // Provera kraja
       if (livePosition >= videoEl.duration) {
         this.videoEnded = true;
         videoEl.pause();
@@ -241,8 +310,6 @@ onVideoLoaded() {
         return;
       }
 
-      // Samo spreci da currentTime ode UNAPRED od live pozicije
-      // Unazad je dozvoljeno - korisnik moze premotavati
       if (videoEl.currentTime > livePosition + 2) {
         this.isSyncingPosition = true;
         videoEl.currentTime = livePosition;
@@ -252,7 +319,6 @@ onVideoLoaded() {
   }
 
   onVideoSeeked() {
-    // Ako je programski seek (iz onVideoLoaded ili startSeekSync), ignorisi
     if (this.isSyncingPosition) return;
     if (!this.isScheduledStream || !this.video) return;
 
@@ -261,13 +327,11 @@ onVideoLoaded() {
     const scheduled = new Date(this.video.scheduledAt!);
     const livePosition = Math.floor((now.getTime() - scheduled.getTime()) / 1000);
 
-    // Dozvoli premotavanje UNAZAD (ali ne unapred od live pozicije)
     if (videoEl.currentTime > livePosition + 2) {
       this.isSyncingPosition = true;
       videoEl.currentTime = livePosition;
       setTimeout(() => { this.isSyncingPosition = false; }, 200);
     }
-    // Premotavanje unazad je dozvoljeno - ne radi nista
   }
 
   private startCountdown(scheduledAtStr: string) {
@@ -279,7 +343,6 @@ onVideoLoaded() {
       if (diffMs <= 0) {
         this.isWaitingForSchedule = false;
         clearInterval(this.countdownInterval);
-        // Ponovo ucitaj video - sada bi trebao biti dostupan
         if (this.video) {
           this.loadVideo(this.video.id);
         }
@@ -304,24 +367,23 @@ onVideoLoaded() {
 
   loadOtherVideos(currentVideoId: number) {
     this.videoService.getAllVideos().subscribe({
-        next: (videos) => {
-            // izbaci trenutni video iz liste
-            this.otherVideos = videos.filter(v => v.id !== currentVideoId);
-            this.cdr.detectChanges();
-        },
-        error: (err) => console.error('Failed to load other videos', err)
+      next: (videos) => {
+        this.otherVideos = videos.filter(v => v.id !== currentVideoId);
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Failed to load other videos', err)
     });
   }
+
   getThumbnailUrl(videoId: number): string {
-  return this.videoService.getThumbnailUrl(videoId);
-}
+    return this.videoService.getThumbnailUrl(videoId);
+  }
 
   incrementViewCount(videoId: number) {
     if (!this.viewCountIncremented) {
       this.videoService.incrementViewCount(videoId).subscribe({
         next: () => {
           this.viewCountIncremented = true;
-          // Azuriraj view count u UI-ju
           if (this.video) {
             this.video.viewCount += 1;
             this.cdr.detectChanges();
@@ -335,13 +397,18 @@ onVideoLoaded() {
   }
 
   goToVideo(videoId: number) {
+    // Diskonektuj se sa trenutnog četa
+    this.chatService.disconnect();
+    this.chatMessages = [];
+    
     this.router.navigate(['/video', videoId]).then(() => {
-        this.loadVideo(videoId);
-        this.loadOtherVideos(videoId);
+      this.loadVideo(videoId);
+      this.loadOtherVideos(videoId);
+      this.connectToChat(videoId);
     });
   }
 
- goBack() {
+  goBack() {
     this.router.navigate(['/']);
   }
 
